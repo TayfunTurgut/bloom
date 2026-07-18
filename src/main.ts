@@ -1,17 +1,22 @@
-import { Application, Assets, Sprite } from "pixi.js";
+import { Application, Assets, Sprite, Texture } from "pixi.js";
 
-(async () => {
+void (async () => {
   // Create a new application
   const app = new Application();
 
   // Initialize the application
   await app.init({ background: "#1099bb", resizeTo: window });
 
+  const pixiContainer = document.getElementById("pixi-container");
+  if (!pixiContainer) {
+    throw new Error("PixiContainer not found");
+  }
+
   // Append the application canvas to the document body
-  document.getElementById("pixi-container")!.appendChild(app.canvas);
+  pixiContainer.appendChild(app.canvas);
 
   // Load the bunny texture
-  const texture = await Assets.load("/assets/bunny.png");
+  const texture = await Assets.load<Texture>("/assets/bunny.png");
 
   // Create a bunny Sprite
   const bunny = new Sprite(texture);

@@ -7,13 +7,19 @@ export default tseslint.config(
   {
     extends: [
       js.configs.recommended,
-      ...tseslint.configs.recommended,
+      ...tseslint.configs.recommendedTypeChecked,
       prettier,
     ],
     files: ["**/*.{ts,tsx}"],
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "module",
+      parserOptions: {
+        projectService: {
+          allowDefaultProject: ["*.ts", "*.mjs"],
+        },
+        tsconfigRootDir: import.meta.dirname,
+      },
     },
     rules: {},
   },
