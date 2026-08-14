@@ -1,9 +1,10 @@
-import { CBaseController } from "../engine/controller";
-import config from "./config";
-import { type ApplicationOptions, Assets } from "pixi.js";
 import { CircularProgressBar } from "@pixi/ui";
+import config from "./config";
+import type { TConfig } from "./config/schema";
 import { COLOR_BACKGROUND, COLOR_GOAL_PROGRESS_FILL } from "./colors";
 import { onResize } from "../engine/resize";
+import { CContainer } from "../engine/container";
+import type { IEngine } from "../engine/app";
 import { CGoalPanel } from "./components/goal/panel";
 import { CBoard } from "./components/board";
 import { CTray } from "./components/tray";
@@ -13,6 +14,21 @@ import { CellId, cellIdFromXY } from "./id";
 import { loadSaveState } from "./state";
 import type { AssetKey } from "../assetpack/assets";
 
+type TLevel = TConfig["levels"][number];
+
+/** Art every level needs regardless of its piece set. */
+const STATIC_ASSET_KEYS: readonly AssetKey[] = [
+  "tiles/dirt_tile", // board cells
+  "bars/bar_wood_3", // tray background
+  "decor/wood_arrow_down", // tray arrows
+  "bars/plank_bar", // goal panel background
+  "panels/rounded", // goal item background
+  "badges/check_badge", // goal complete tick
+  "badges/disc_brown", // hud move counter disc
+  "Baloo2-Bold",
+  "Baloo2-Regular",
+];
+
 interface IGameState {
   level: number; // current level index
   moves: number; // move counter shown in the HUD
@@ -20,24 +36,18 @@ interface IGameState {
   board: Map<CellId, CPiece | null>; // board model — what is placed where
 }
 
-export class CGameController extends CBaseController {
+export class CGameController extends CContainer {
   private state!: IGameState;
   private panel!: CGoalPanel;
   private board!: CBoard;
   private tray!: CTray;
 
-  async init(options?: Partial<ApplicationOptions>) {
-    await this.app.init({
-      background: COLOR_BACKGROUND,
-      resizeTo: window,
-      ...options,
-    });
+  constructor(private readonly engine: IEngine<AssetKey>) {
+    super();
+  }
 
-    const pixiContainer = document.getElementById("pixi-container");
-    if (!pixiContainer) {
-      throw new Error("PixiContainer not found");
-    }
-    pixiContainer.appendChild(this.app.canvas);
+  async start() {
+    const { app, assets } = this.engine;
 
     const progressBar = new CircularProgressBar({
       backgroundColor: COLOR_BACKGROUND,
@@ -49,36 +59,41 @@ export class CGameController extends CBaseController {
       value: 0,
       cap: "round",
     });
-    this.app.stage.addChild(progressBar);
+    app.stage.addChild(progressBar);
     onResize(
-      this.app,
+      app,
       (w, h) => {
         progressBar.position.set(w * 0.5, h * 0.5);
       },
       progressBar,
     );
 
-    await Assets.init({
-      basePath: "/assets/",
-      manifest: "manifest.json",
-    });
-    await Assets.loadBundle("default", (progress) => {
-      progressBar.progress = progress * 100;
-    });
-    // Destroy after the await: onProgress may never fire for cached loads.
-    progressBar.destroy();
-
-    this.createGameContainer();
-
-    return this.app;
-  }
-
-  private createGameContainer() {
-    onResize(this.app, (w, h) => this.onResize(w, h), this.container);
-
     // Clamp so a stale save (level index beyond the shipped levels) can't crash.
     const currentLevel = loadSaveState().level % config.levels.length;
     const level = config.levels[currentLevel];
+
+    // Load only what this level needs; the atlas library is far too large to
+    // load wholesale (>1GB decoded on a 62-page manifest).
+    await assets.load(
+      [
+        ...STATIC_ASSET_KEYS,
+        ...level.pieces,
+        ...level.goals.map((goal) => goal.type),
+      ],
+      (progress) => {
+        progressBar.progress = progress * 100;
+      },
+    );
+    // Destroy after the await: onProgress may never fire for cached loads.
+    progressBar.destroy();
+
+    this.createGameContainer(currentLevel, level);
+  }
+
+  private createGameContainer(currentLevel: number, level: TLevel) {
+    const app = this.engine.app;
+    onResize(app, (w, h) => this.onResize(w, h), this.container);
+
     const columns = level.columns;
     const rows = level.data.length / columns;
 
@@ -117,7 +132,7 @@ export class CGameController extends CBaseController {
 
     this.layout(rows, columns);
 
-    this.addContainerToStage();
+    app.stage.addChild(this.container);
   }
 
   // Pin the goal panel to the top and the tray to the bottom, then scale the
