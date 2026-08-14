@@ -36,21 +36,17 @@ export class CPiece extends CContainer<{
     sprite.scale.set(scale);
     this.addNamedChild("sprite", sprite);
 
-    const text = new Text();
-    this.addNamedChild("value", text);
-
-    this.updateText(text);
-  }
-
-  private updateText(text: Text) {
-    text.text = this.currentValue;
-    text.style = {
-      fill: "#ffffff",
-      stroke: { color: "#3d3d3d", width: 4 },
-      fontSize: 52,
-      fontFamily: "Inter",
-    };
+    const text = new Text({
+      text: value,
+      style: {
+        fill: "#ffffff",
+        stroke: { color: "#3d3d3d", width: 4 },
+        fontSize: 52,
+        fontFamily: getAsset<FontFace>("Baloo2-Regular").family,
+      },
+    });
     text.anchor.set(0.5);
+    this.addNamedChild("value", text);
   }
 
   get currentValue() {
@@ -59,6 +55,6 @@ export class CPiece extends CContainer<{
 
   set currentValue(value: number) {
     this._currentValue = value;
-    this.updateText(this.getChildByLabel("value"));
+    this.getChildByLabel("value").text = value;
   }
 }

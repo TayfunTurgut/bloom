@@ -15,8 +15,6 @@ export class CBoard extends CContainer<TNone, TBoardEvents> {
   constructor(private readonly options: IBoardOptions) {
     super();
 
-    this.options = options;
-
     this.init();
   }
 
@@ -46,7 +44,8 @@ export class CBoard extends CContainer<TNone, TBoardEvents> {
           -totalHeight * 0.5 + CCELL_HEIGHT * 0.5 + CCELL_HEIGHT * y,
         );
 
-        cell.on("click", () => this.onCellClicked(cell), this);
+        // "pointertap" fires for mouse and touch; "click" is mouse-only.
+        cell.on("pointertap", () => this.onCellClicked(cell), this);
       }
     }
   }

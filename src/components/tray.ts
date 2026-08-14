@@ -35,7 +35,7 @@ export class CTray extends CContainer {
     while (this.flowers.length < 3) {
       const pieces = this.options.pieces;
       const key = pieces[Math.floor(Math.random() * pieces.length)];
-      const flower = new CPiece(key, Math.ceil(Math.random() * 12));
+      const flower = new CPiece(key, Math.floor(Math.random() * 12) + 1);
       flower.container.alpha = TRAY_PIECE_ALPHA;
       this.container.addChild(flower.container);
       this.flowers.unshift(flower);

@@ -64,10 +64,9 @@ export class CGameController extends CBaseController {
     });
     await Assets.loadBundle("default", (progress) => {
       progressBar.progress = progress * 100;
-      if (progress >= 1) {
-        progressBar.destroy();
-      }
     });
+    // Destroy after the await: onProgress may never fire for cached loads.
+    progressBar.destroy();
 
     this.createGameContainer();
 
@@ -77,7 +76,8 @@ export class CGameController extends CBaseController {
   private createGameContainer() {
     onResize(this.app, (w, h) => this.onResize(w, h), this.container);
 
-    const { level: currentLevel } = loadSaveState();
+    // Clamp so a stale save (level index beyond the shipped levels) can't crash.
+    const currentLevel = loadSaveState().level % config.levels.length;
     const level = config.levels[currentLevel];
     const columns = level.columns;
     const rows = level.data.length / columns;
