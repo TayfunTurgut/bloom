@@ -1,0 +1,183 @@
+{
+  "frames": {
+    "cabbage/love": {
+      "frame": { "x": 1601, "y": 1201, "w": 458, "h": 438 },
+      "rotated": true,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 27, "y": 6, "w": 458, "h": 438 },
+      "sourceSize": { "w": 512, "h": 450 }
+    },
+    "cayenne/content": {
+      "frame": { "x": 1, "y": 1, "w": 398, "h": 494 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 2, "y": 14, "w": 398, "h": 494 },
+      "sourceSize": { "w": 402, "h": 512 }
+    },
+    "cayenne/furious": {
+      "frame": { "x": 1, "y": 497, "w": 398, "h": 494 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 2, "y": 14, "w": 398, "h": 494 },
+      "sourceSize": { "w": 402, "h": 512 }
+    },
+    "cayenne/grinning": {
+      "frame": { "x": 1, "y": 993, "w": 398, "h": 494 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 2, "y": 14, "w": 398, "h": 494 },
+      "sourceSize": { "w": 402, "h": 512 }
+    },
+    "cayenne/happy": {
+      "frame": { "x": 1, "y": 1489, "w": 398, "h": 494 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 2, "y": 14, "w": 398, "h": 494 },
+      "sourceSize": { "w": 402, "h": 512 }
+    },
+    "cayenne/laughing": {
+      "frame": { "x": 401, "y": 1, "w": 398, "h": 494 },
+      "rotated": true,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 2, "y": 14, "w": 398, "h": 494 },
+      "sourceSize": { "w": 402, "h": 512 }
+    },
+    "cayenne/love": {
+      "frame": { "x": 897, "y": 1, "w": 398, "h": 494 },
+      "rotated": true,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 2, "y": 14, "w": 398, "h": 494 },
+      "sourceSize": { "w": 402, "h": 512 }
+    },
+    "cayenne/neutral": {
+      "frame": { "x": 1393, "y": 1, "w": 398, "h": 494 },
+      "rotated": true,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 2, "y": 14, "w": 398, "h": 494 },
+      "sourceSize": { "w": 402, "h": 512 }
+    },
+    "cayenne/surprised": {
+      "frame": { "x": 401, "y": 401, "w": 398, "h": 494 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 2, "y": 14, "w": 398, "h": 494 },
+      "sourceSize": { "w": 402, "h": 512 }
+    },
+    "cayenne/wink": {
+      "frame": { "x": 401, "y": 897, "w": 398, "h": 494 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 2, "y": 14, "w": 398, "h": 494 },
+      "sourceSize": { "w": 402, "h": 512 }
+    },
+    "habanero/angry": {
+      "frame": { "x": 401, "y": 1393, "w": 398, "h": 494 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 2, "y": 14, "w": 398, "h": 494 },
+      "sourceSize": { "w": 402, "h": 512 }
+    },
+    "habanero/annoyed": {
+      "frame": { "x": 801, "y": 401, "w": 398, "h": 494 },
+      "rotated": true,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 2, "y": 14, "w": 398, "h": 494 },
+      "sourceSize": { "w": 402, "h": 512 }
+    },
+    "habanero/content": {
+      "frame": { "x": 1297, "y": 401, "w": 398, "h": 494 },
+      "rotated": true,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 2, "y": 14, "w": 398, "h": 494 },
+      "sourceSize": { "w": 402, "h": 512 }
+    },
+    "habanero/furious": {
+      "frame": { "x": 801, "y": 801, "w": 398, "h": 494 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 2, "y": 14, "w": 398, "h": 494 },
+      "sourceSize": { "w": 402, "h": 512 }
+    },
+    "habanero/grinning": {
+      "frame": { "x": 801, "y": 1297, "w": 398, "h": 494 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 2, "y": 14, "w": 398, "h": 494 },
+      "sourceSize": { "w": 402, "h": 512 }
+    },
+    "habanero/happy": {
+      "frame": { "x": 1201, "y": 801, "w": 398, "h": 494 },
+      "rotated": true,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 2, "y": 14, "w": 398, "h": 494 },
+      "sourceSize": { "w": 402, "h": 512 }
+    },
+    "habanero/laughing": {
+      "frame": { "x": 1201, "y": 1201, "w": 398, "h": 494 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 2, "y": 14, "w": 398, "h": 494 },
+      "sourceSize": { "w": 402, "h": 512 }
+    }
+  },
+  "meta": {
+    "app": "https://www.codeandweb.com/texturepacker",
+    "version": "1.1",
+    "image": "pieces-40.png",
+    "format": "RGBA8888",
+    "size": { "w": 2048, "h": 2048 },
+    "scale": "1",
+    "related_multi_packs": [
+      "pieces.json",
+      "pieces-2.json",
+      "pieces-3.json",
+      "pieces-4.json",
+      "pieces-5.json",
+      "pieces-6.json",
+      "pieces-7.json",
+      "pieces-8.json",
+      "pieces-9.json",
+      "pieces-10.json",
+      "pieces-11.json",
+      "pieces-12.json",
+      "pieces-13.json",
+      "pieces-14.json",
+      "pieces-15.json",
+      "pieces-16.json",
+      "pieces-17.json",
+      "pieces-18.json",
+      "pieces-19.json",
+      "pieces-20.json",
+      "pieces-21.json",
+      "pieces-22.json",
+      "pieces-23.json",
+      "pieces-24.json",
+      "pieces-25.json",
+      "pieces-26.json",
+      "pieces-27.json",
+      "pieces-28.json",
+      "pieces-29.json",
+      "pieces-30.json",
+      "pieces-31.json",
+      "pieces-32.json",
+      "pieces-33.json",
+      "pieces-34.json",
+      "pieces-35.json",
+      "pieces-36.json",
+      "pieces-37.json",
+      "pieces-38.json",
+      "pieces-39.json",
+      "pieces-41.json",
+      "pieces-42.json",
+      "pieces-43.json",
+      "pieces-44.json",
+      "pieces-45.json",
+      "pieces-46.json",
+      "pieces-47.json",
+      "pieces-48.json",
+      "pieces-49.json",
+      "pieces-50.json"
+    ],
+    "smartupdate": "$TexturePacker:SmartUpdate:51d424e21401f6aecbdad94143fb3c23:dcbdf837dcdb0b9040b8fd2c11bba300:f291209e5179f01399499db24b9aa294$"
+  }
+}

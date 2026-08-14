@@ -1,0 +1,190 @@
+{
+  "frames": {
+    "bean_black/wink": {
+      "frame": { "x": 1689, "y": 863, "w": 500, "h": 336 },
+      "rotated": true,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 6, "y": 22, "w": 500, "h": 336 },
+      "sourceSize": { "w": 512, "h": 364 }
+    },
+    "bean_green/angry": {
+      "frame": { "x": 1689, "y": 1365, "w": 500, "h": 336 },
+      "rotated": true,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 6, "y": 22, "w": 500, "h": 336 },
+      "sourceSize": { "w": 512, "h": 364 }
+    },
+    "carrot/neutral": {
+      "frame": { "x": 1, "y": 1, "w": 394, "h": 508 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 2, "y": 2, "w": 394, "h": 508 },
+      "sourceSize": { "w": 398, "h": 512 }
+    },
+    "carrot/surprised": {
+      "frame": { "x": 1, "y": 511, "w": 394, "h": 508 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 2, "y": 2, "w": 394, "h": 508 },
+      "sourceSize": { "w": 398, "h": 512 }
+    },
+    "carrot/wink": {
+      "frame": { "x": 1, "y": 1021, "w": 394, "h": 508 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 2, "y": 2, "w": 394, "h": 508 },
+      "sourceSize": { "w": 398, "h": 512 }
+    },
+    "cherry/angry": {
+      "frame": { "x": 1259, "y": 863, "w": 428, "h": 506 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 3, "y": 3, "w": 428, "h": 506 },
+      "sourceSize": { "w": 434, "h": 512 }
+    },
+    "custard_apple/angry": {
+      "frame": { "x": 1, "y": 1531, "w": 429, "h": 506 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 3, "y": 3, "w": 429, "h": 506 },
+      "sourceSize": { "w": 435, "h": 512 }
+    },
+    "custard_apple/annoyed": {
+      "frame": { "x": 397, "y": 1, "w": 429, "h": 506 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 3, "y": 3, "w": 429, "h": 506 },
+      "sourceSize": { "w": 435, "h": 512 }
+    },
+    "custard_apple/content": {
+      "frame": { "x": 397, "y": 509, "w": 429, "h": 506 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 3, "y": 3, "w": 429, "h": 506 },
+      "sourceSize": { "w": 435, "h": 512 }
+    },
+    "custard_apple/furious": {
+      "frame": { "x": 397, "y": 1017, "w": 429, "h": 506 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 3, "y": 3, "w": 429, "h": 506 },
+      "sourceSize": { "w": 435, "h": 512 }
+    },
+    "custard_apple/grinning": {
+      "frame": { "x": 432, "y": 1525, "w": 429, "h": 506 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 3, "y": 3, "w": 429, "h": 506 },
+      "sourceSize": { "w": 435, "h": 512 }
+    },
+    "custard_apple/happy": {
+      "frame": { "x": 863, "y": 1, "w": 429, "h": 506 },
+      "rotated": true,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 3, "y": 3, "w": 429, "h": 506 },
+      "sourceSize": { "w": 435, "h": 512 }
+    },
+    "custard_apple/laughing": {
+      "frame": { "x": 1371, "y": 1, "w": 429, "h": 506 },
+      "rotated": true,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 3, "y": 3, "w": 429, "h": 506 },
+      "sourceSize": { "w": 435, "h": 512 }
+    },
+    "custard_apple/love": {
+      "frame": { "x": 828, "y": 432, "w": 429, "h": 506 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 3, "y": 3, "w": 429, "h": 506 },
+      "sourceSize": { "w": 435, "h": 512 }
+    },
+    "custard_apple/neutral": {
+      "frame": { "x": 828, "y": 940, "w": 429, "h": 506 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 3, "y": 3, "w": 429, "h": 506 },
+      "sourceSize": { "w": 435, "h": 512 }
+    },
+    "custard_apple/surprised": {
+      "frame": { "x": 863, "y": 1448, "w": 429, "h": 506 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 3, "y": 3, "w": 429, "h": 506 },
+      "sourceSize": { "w": 435, "h": 512 }
+    },
+    "custard_apple/wink": {
+      "frame": { "x": 1294, "y": 432, "w": 429, "h": 506 },
+      "rotated": true,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 3, "y": 3, "w": 429, "h": 506 },
+      "sourceSize": { "w": 435, "h": 512 }
+    },
+    "lettuce/furious": {
+      "frame": { "x": 1294, "y": 1371, "w": 392, "h": 492 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 2, "y": 18, "w": 392, "h": 492 },
+      "sourceSize": { "w": 396, "h": 512 }
+    }
+  },
+  "meta": {
+    "app": "https://www.codeandweb.com/texturepacker",
+    "version": "1.1",
+    "image": "pieces-12.png",
+    "format": "RGBA8888",
+    "size": { "w": 2048, "h": 2048 },
+    "scale": "1",
+    "related_multi_packs": [
+      "pieces.json",
+      "pieces-2.json",
+      "pieces-3.json",
+      "pieces-4.json",
+      "pieces-5.json",
+      "pieces-6.json",
+      "pieces-7.json",
+      "pieces-8.json",
+      "pieces-9.json",
+      "pieces-10.json",
+      "pieces-11.json",
+      "pieces-13.json",
+      "pieces-14.json",
+      "pieces-15.json",
+      "pieces-16.json",
+      "pieces-17.json",
+      "pieces-18.json",
+      "pieces-19.json",
+      "pieces-20.json",
+      "pieces-21.json",
+      "pieces-22.json",
+      "pieces-23.json",
+      "pieces-24.json",
+      "pieces-25.json",
+      "pieces-26.json",
+      "pieces-27.json",
+      "pieces-28.json",
+      "pieces-29.json",
+      "pieces-30.json",
+      "pieces-31.json",
+      "pieces-32.json",
+      "pieces-33.json",
+      "pieces-34.json",
+      "pieces-35.json",
+      "pieces-36.json",
+      "pieces-37.json",
+      "pieces-38.json",
+      "pieces-39.json",
+      "pieces-40.json",
+      "pieces-41.json",
+      "pieces-42.json",
+      "pieces-43.json",
+      "pieces-44.json",
+      "pieces-45.json",
+      "pieces-46.json",
+      "pieces-47.json",
+      "pieces-48.json",
+      "pieces-49.json",
+      "pieces-50.json"
+    ],
+    "smartupdate": "$TexturePacker:SmartUpdate:51d424e21401f6aecbdad94143fb3c23:dcbdf837dcdb0b9040b8fd2c11bba300:f291209e5179f01399499db24b9aa294$"
+  }
+}

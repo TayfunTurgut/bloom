@@ -23,4 +23,9 @@ dist-ssr
 *.sln
 *.sw?
 
+# Serena artifact
 .serena/
+
+# Asset management
+.assetpack/
+public/assets/

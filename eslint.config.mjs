@@ -21,6 +21,8 @@ export default tseslint.config(
         tsconfigRootDir: import.meta.dirname,
       },
     },
-    rules: {},
+    rules: {
+      "@typescript-eslint/unbound-method": "off",
+    },
   },
 );

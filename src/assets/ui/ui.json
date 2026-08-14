@@ -1,0 +1,143 @@
+{
+  "frames": {
+    "backgrounds/beige": {
+      "frame": { "x": 1, "y": 1, "w": 910, "h": 910 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 57, "y": 57, "w": 910, "h": 910 },
+      "sourceSize": { "w": 1024, "h": 1024 }
+    },
+    "backgrounds/grass_tile": {
+      "frame": { "x": 917, "y": 913, "w": 688, "h": 688 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 150, "y": 91, "w": 688, "h": 688 },
+      "sourceSize": { "w": 1024, "h": 862 }
+    },
+    "backgrounds/light": {
+      "frame": { "x": 913, "y": 1, "w": 910, "h": 910 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 57, "y": 57, "w": 910, "h": 910 },
+      "sourceSize": { "w": 1024, "h": 1024 }
+    },
+    "backgrounds/tile_brown": {
+      "frame": { "x": 1, "y": 913, "w": 515, "h": 914 },
+      "rotated": true,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 55, "y": 55, "w": 515, "h": 914 },
+      "sourceSize": { "w": 625, "h": 1024 }
+    },
+    "backgrounds/wood": {
+      "frame": { "x": 1, "y": 1430, "w": 910, "h": 592 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 57, "y": 57, "w": 910, "h": 592 },
+      "sourceSize": { "w": 1024, "h": 706 }
+    },
+    "badges/heart": {
+      "frame": { "x": 913, "y": 1603, "w": 512, "h": 407 },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": { "x": 0, "y": 0, "w": 512, "h": 407 },
+      "sourceSize": { "w": 512, "h": 407 }
+    },
+    "badges/leaf_badge": {
+      "frame": { "x": 1607, "y": 1427, "w": 512, "h": 426 },
+      "rotated": true,
+      "trimmed": false,
+      "spriteSourceSize": { "x": 0, "y": 0, "w": 512, "h": 426 },
+      "sourceSize": { "w": 512, "h": 426 }
+    },
+    "badges/money_note": {
+      "frame": { "x": 1607, "y": 913, "w": 512, "h": 428 },
+      "rotated": true,
+      "trimmed": false,
+      "spriteSourceSize": { "x": 0, "y": 0, "w": 512, "h": 428 },
+      "sourceSize": { "w": 512, "h": 428 }
+    },
+    "bars/bar_dark": {
+      "frame": { "x": 1825, "y": 1, "w": 472, "h": 61 },
+      "rotated": true,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 20, "y": 20, "w": 472, "h": 61 },
+      "sourceSize": { "w": 512, "h": 101 }
+    },
+    "bars/bar_wood_2": {
+      "frame": { "x": 1578, "y": 1941, "w": 456, "h": 101 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 28, "y": 28, "w": 456, "h": 101 },
+      "sourceSize": { "w": 512, "h": 233 }
+    },
+    "bars/plank_bar": {
+      "frame": { "x": 1888, "y": 1, "w": 458, "h": 146 },
+      "rotated": true,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 27, "y": 27, "w": 458, "h": 146 },
+      "sourceSize": { "w": 512, "h": 200 }
+    },
+    "bars/slider_v_2": {
+      "frame": { "x": 913, "y": 2012, "w": 24, "h": 458 },
+      "rotated": true,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 27, "y": 27, "w": 24, "h": 458 },
+      "sourceSize": { "w": 78, "h": 512 }
+    },
+    "carrot_faded/0": {
+      "frame": { "x": 1825, "y": 475, "w": 207, "h": 422 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 54, "y": 40, "w": 207, "h": 422 },
+      "sourceSize": { "w": 302, "h": 512 }
+    },
+    "tiles/stone": {
+      "frame": { "x": 1427, "y": 1603, "w": 353, "h": 149 },
+      "rotated": true,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 66, "y": 43, "w": 353, "h": 149 },
+      "sourceSize": { "w": 512, "h": 235 }
+    }
+  },
+  "animations": {
+    "banners/leaf_banner": [
+      "banners/leaf_banner_0",
+      "banners/leaf_banner_1",
+      "banners/leaf_banner_2",
+      "banners/leaf_banner_3",
+      "banners/leaf_banner_4",
+      "banners/leaf_banner_5",
+      "banners/leaf_banner_6"
+    ],
+    "carrot_faded": [
+      "carrot_faded/0",
+      "carrot_faded/1",
+      "carrot_faded/2",
+      "carrot_faded/3",
+      "carrot_faded/4",
+      "carrot_faded/5",
+      "carrot_faded/6"
+    ],
+    "worm": ["worm/0", "worm/1", "worm/2", "worm/3", "worm/4"]
+  },
+  "meta": {
+    "app": "https://www.codeandweb.com/texturepacker",
+    "version": "1.1",
+    "image": "ui.png",
+    "format": "RGBA8888",
+    "size": { "w": 2048, "h": 2048 },
+    "scale": "1",
+    "related_multi_packs": [
+      "ui-2.json",
+      "ui-3.json",
+      "ui-4.json",
+      "ui-5.json",
+      "ui-6.json",
+      "ui-7.json",
+      "ui-8.json",
+      "ui-9.json",
+      "ui-10.json"
+    ],
+    "smartupdate": "$TexturePacker:SmartUpdate:635be6181e996d789b5855ace608aa32:dcb5cd89a20de9cb361e996692b360d7:993ecd1988f34bce027887367da5d3d2$"
+  }
+}

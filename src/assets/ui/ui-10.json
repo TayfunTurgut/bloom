@@ -1,0 +1,80 @@
+{
+  "frames": {
+    "badges/swap_arrows_2": {
+      "frame": { "x": 1, "y": 720, "w": 322, "h": 413 },
+      "rotated": true,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 48, "y": 51, "w": 322, "h": 413 },
+      "sourceSize": { "w": 418, "h": 512 }
+    },
+    "decor/star": {
+      "frame": { "x": 427, "y": 699, "w": 416, "h": 397 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 49, "y": 45, "w": 416, "h": 397 },
+      "sourceSize": { "w": 512, "h": 491 }
+    },
+    "decor/star_2": {
+      "frame": { "x": 437, "y": 1, "w": 429, "h": 398 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 42, "y": 39, "w": 429, "h": 398 },
+      "sourceSize": { "w": 512, "h": 479 }
+    },
+    "decor/wood_arrow_down": {
+      "frame": { "x": 437, "y": 401, "w": 296, "h": 428 },
+      "rotated": true,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 47, "y": 42, "w": 296, "h": 428 },
+      "sourceSize": { "w": 385, "h": 512 }
+    },
+    "panels/tan_square": {
+      "frame": { "x": 1, "y": 1, "w": 434, "h": 434 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 39, "y": 39, "w": 434, "h": 434 },
+      "sourceSize": { "w": 512, "h": 512 }
+    },
+    "tiles/stone_3": {
+      "frame": { "x": 380, "y": 1098, "w": 285, "h": 294 },
+      "rotated": true,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 40, "y": 151, "w": 285, "h": 294 },
+      "sourceSize": { "w": 417, "h": 512 }
+    },
+    "worm/3": {
+      "frame": { "x": 1, "y": 1044, "w": 306, "h": 377 },
+      "rotated": true,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 57, "y": 44, "w": 306, "h": 377 },
+      "sourceSize": { "w": 410, "h": 512 }
+    },
+    "worm/4": {
+      "frame": { "x": 1, "y": 437, "w": 281, "h": 424 },
+      "rotated": true,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 54, "y": 43, "w": 281, "h": 424 },
+      "sourceSize": { "w": 380, "h": 512 }
+    }
+  },
+  "meta": {
+    "app": "https://www.codeandweb.com/texturepacker",
+    "version": "1.1",
+    "image": "ui-10.png",
+    "format": "RGBA8888",
+    "size": { "w": 1024, "h": 2048 },
+    "scale": "1",
+    "related_multi_packs": [
+      "ui.json",
+      "ui-2.json",
+      "ui-3.json",
+      "ui-4.json",
+      "ui-5.json",
+      "ui-6.json",
+      "ui-7.json",
+      "ui-8.json",
+      "ui-9.json"
+    ],
+    "smartupdate": "$TexturePacker:SmartUpdate:635be6181e996d789b5855ace608aa32:dcb5cd89a20de9cb361e996692b360d7:993ecd1988f34bce027887367da5d3d2$"
+  }
+}

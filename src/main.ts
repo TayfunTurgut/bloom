@@ -1,19 +1,10 @@
-import { Application } from "pixi.js";
+import { CGameController } from "./controllers/game";
+import "./style.css";
+import "@pixi/layout";
 
-async function main() {
-  const app = new Application();
-
-  await app.init({
-    background: "#1099bb",
-    resizeTo: window,
-  });
-
-  const pixiContainer = document.getElementById("pixi-container");
-  if (!pixiContainer) {
-    throw new Error("PixiContainer not found");
-  }
-
-  pixiContainer.appendChild(app.canvas);
+function main() {
+  const controller = new CGameController();
+  void controller.init();
 }
 
-void main();
+main();

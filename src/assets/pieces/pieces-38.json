@@ -1,0 +1,197 @@
+{
+  "frames": {
+    "bean_white/laughing": {
+      "frame": { "x": 1, "y": 1, "w": 500, "h": 336 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 6, "y": 22, "w": 500, "h": 336 },
+      "sourceSize": { "w": 512, "h": 364 }
+    },
+    "bean_white/love": {
+      "frame": { "x": 503, "y": 1, "w": 500, "h": 336 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 6, "y": 22, "w": 500, "h": 336 },
+      "sourceSize": { "w": 512, "h": 364 }
+    },
+    "bean_white/neutral": {
+      "frame": { "x": 1005, "y": 1, "w": 500, "h": 336 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 6, "y": 22, "w": 500, "h": 336 },
+      "sourceSize": { "w": 512, "h": 364 }
+    },
+    "bean_white/surprised": {
+      "frame": { "x": 1507, "y": 1, "w": 500, "h": 336 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 6, "y": 22, "w": 500, "h": 336 },
+      "sourceSize": { "w": 512, "h": 364 }
+    },
+    "bean_white/wink": {
+      "frame": { "x": 1, "y": 339, "w": 500, "h": 336 },
+      "rotated": true,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 6, "y": 22, "w": 500, "h": 336 },
+      "sourceSize": { "w": 512, "h": 364 }
+    },
+    "bell_pepper_green/content": {
+      "frame": { "x": 1612, "y": 339, "w": 431, "h": 484 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 13, "y": 5, "w": 431, "h": 484 },
+      "sourceSize": { "w": 457, "h": 512 }
+    },
+    "bell_pepper_green/furious": {
+      "frame": { "x": 1612, "y": 825, "w": 431, "h": 484 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 13, "y": 5, "w": 431, "h": 484 },
+      "sourceSize": { "w": 457, "h": 512 }
+    },
+    "cabbage/furious": {
+      "frame": { "x": 1159, "y": 1111, "w": 458, "h": 438 },
+      "rotated": true,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 27, "y": 6, "w": 458, "h": 438 },
+      "sourceSize": { "w": 512, "h": 450 }
+    },
+    "cabbage/grinning": {
+      "frame": { "x": 1599, "y": 1311, "w": 458, "h": 438 },
+      "rotated": true,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 27, "y": 6, "w": 458, "h": 438 },
+      "sourceSize": { "w": 512, "h": 450 }
+    },
+    "cabbage/happy": {
+      "frame": { "x": 1159, "y": 1571, "w": 458, "h": 438 },
+      "rotated": true,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 27, "y": 6, "w": 458, "h": 438 },
+      "sourceSize": { "w": 512, "h": 450 }
+    },
+    "chili_pepper/angry": {
+      "frame": { "x": 1, "y": 841, "w": 384, "h": 499 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 90, "y": 7, "w": 384, "h": 499 },
+      "sourceSize": { "w": 504, "h": 512 }
+    },
+    "chili_pepper/annoyed": {
+      "frame": { "x": 339, "y": 339, "w": 384, "h": 499 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 90, "y": 7, "w": 384, "h": 499 },
+      "sourceSize": { "w": 504, "h": 512 }
+    },
+    "chili_pepper/content": {
+      "frame": { "x": 1, "y": 1342, "w": 384, "h": 499 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 90, "y": 7, "w": 384, "h": 499 },
+      "sourceSize": { "w": 504, "h": 512 }
+    },
+    "chili_pepper/furious": {
+      "frame": { "x": 387, "y": 840, "w": 384, "h": 499 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 90, "y": 7, "w": 384, "h": 499 },
+      "sourceSize": { "w": 504, "h": 512 }
+    },
+    "chili_pepper/grinning": {
+      "frame": { "x": 725, "y": 339, "w": 384, "h": 499 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 90, "y": 7, "w": 384, "h": 499 },
+      "sourceSize": { "w": 504, "h": 512 }
+    },
+    "chili_pepper/happy": {
+      "frame": { "x": 387, "y": 1341, "w": 384, "h": 499 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 90, "y": 7, "w": 384, "h": 499 },
+      "sourceSize": { "w": 504, "h": 512 }
+    },
+    "chili_pepper/laughing": {
+      "frame": { "x": 1111, "y": 339, "w": 384, "h": 499 },
+      "rotated": true,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 90, "y": 7, "w": 384, "h": 499 },
+      "sourceSize": { "w": 504, "h": 512 }
+    },
+    "chili_pepper/love": {
+      "frame": { "x": 1111, "y": 725, "w": 384, "h": 499 },
+      "rotated": true,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 90, "y": 7, "w": 384, "h": 499 },
+      "sourceSize": { "w": 504, "h": 512 }
+    },
+    "chili_pepper/neutral": {
+      "frame": { "x": 773, "y": 1311, "w": 384, "h": 499 },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": { "x": 90, "y": 7, "w": 384, "h": 499 },
+      "sourceSize": { "w": 504, "h": 512 }
+    }
+  },
+  "meta": {
+    "app": "https://www.codeandweb.com/texturepacker",
+    "version": "1.1",
+    "image": "pieces-38.png",
+    "format": "RGBA8888",
+    "size": { "w": 2048, "h": 2048 },
+    "scale": "1",
+    "related_multi_packs": [
+      "pieces.json",
+      "pieces-2.json",
+      "pieces-3.json",
+      "pieces-4.json",
+      "pieces-5.json",
+      "pieces-6.json",
+      "pieces-7.json",
+      "pieces-8.json",
+      "pieces-9.json",
+      "pieces-10.json",
+      "pieces-11.json",
+      "pieces-12.json",
+      "pieces-13.json",
+      "pieces-14.json",
+      "pieces-15.json",
+      "pieces-16.json",
+      "pieces-17.json",
+      "pieces-18.json",
+      "pieces-19.json",
+      "pieces-20.json",
+      "pieces-21.json",
+      "pieces-22.json",
+      "pieces-23.json",
+      "pieces-24.json",
+      "pieces-25.json",
+      "pieces-26.json",
+      "pieces-27.json",
+      "pieces-28.json",
+      "pieces-29.json",
+      "pieces-30.json",
+      "pieces-31.json",
+      "pieces-32.json",
+      "pieces-33.json",
+      "pieces-34.json",
+      "pieces-35.json",
+      "pieces-36.json",
+      "pieces-37.json",
+      "pieces-39.json",
+      "pieces-40.json",
+      "pieces-41.json",
+      "pieces-42.json",
+      "pieces-43.json",
+      "pieces-44.json",
+      "pieces-45.json",
+      "pieces-46.json",
+      "pieces-47.json",
+      "pieces-48.json",
+      "pieces-49.json",
+      "pieces-50.json"
+    ],
+    "smartupdate": "$TexturePacker:SmartUpdate:51d424e21401f6aecbdad94143fb3c23:dcbdf837dcdb0b9040b8fd2c11bba300:f291209e5179f01399499db24b9aa294$"
+  }
+}
