@@ -1,5 +1,5 @@
 import { saveStateSchema, type TSaveState } from "./schema";
-import { getStorage, setStorage } from "../utils/storage";
+import { getStorage, setStorage } from "../../engine/storage";
 
 const STORAGE_KEY = "bloom:save";
 

@@ -1,16 +1,16 @@
-import { CBaseController } from "./index";
-import config from "../config";
+import { CBaseController } from "../engine/controller";
+import config from "./config";
 import { type ApplicationOptions, Assets } from "pixi.js";
 import { CircularProgressBar } from "@pixi/ui";
-import { COLOR_BACKGROUND, COLOR_GOAL_PROGRESS_FILL } from "../utils/color";
-import { onResize } from "../utils/resize";
-import { CGoalPanel } from "../components/goal/panel";
-import { CBoard } from "../components/board";
-import { CTray } from "../components/tray";
-import { CCell, CCELL_HEIGHT, CCELL_WIDTH } from "../components/cell";
-import { CPiece, EFlowerType } from "../components/piece";
-import { CellId, cellIdFromXY } from "../utils/id";
-import { loadSaveState } from "../state";
+import { COLOR_BACKGROUND, COLOR_GOAL_PROGRESS_FILL } from "./colors";
+import { onResize } from "../engine/resize";
+import { CGoalPanel } from "./components/goal/panel";
+import { CBoard } from "./components/board";
+import { CTray } from "./components/tray";
+import { CCell, CCELL_HEIGHT, CCELL_WIDTH } from "./components/cell";
+import { CPiece, EFlowerType } from "./components/piece";
+import { CellId, cellIdFromXY } from "./id";
+import { loadSaveState } from "./state";
 import type { AssetKey } from "../assetpack/assets";
 
 interface IGameState {

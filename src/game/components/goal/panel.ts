@@ -1,11 +1,11 @@
 import { Sprite, Text, Texture, type Container } from "pixi.js";
-import { CContainer } from "../common/container";
+import { CContainer } from "../../../engine/container";
 import { CGoalItem } from "./item";
 import { CGoalHud } from "./hud";
-import { getAsset } from "../../utils/assets";
-import { COLOR_FONT_FILL_BROWN } from "../../utils/color";
+import { getAsset } from "../../assets";
+import { COLOR_FONT_FILL_BROWN } from "../../colors";
 import config from "../../config";
-import type { AssetKey } from "../../assetpack/assets";
+import type { AssetKey } from "../../../assetpack/assets";
 
 type TGoalPanelProps = {
   goals: { type: AssetKey; count: number }[];

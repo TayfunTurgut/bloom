@@ -1,6 +1,6 @@
 import { CCell, CCELL_HEIGHT, CCELL_WIDTH } from "./cell";
 import { CPiece } from "./piece";
-import { CContainer, type TNone } from "./common/container";
+import { CContainer, type TNone } from "../../engine/container";
 
 type IBoardOptions = {
   rows: number;

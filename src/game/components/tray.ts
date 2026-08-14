@@ -1,9 +1,9 @@
 import { Sprite, Texture } from "pixi.js";
-import { CContainer } from "./common/container";
-import { getAsset } from "../utils/assets";
+import { CContainer } from "../../engine/container";
+import { getAsset } from "../assets";
 import { CPiece, CPIECE_WIDTH } from "./piece";
 import config from "../config";
-import type { AssetKey } from "../assetpack/assets";
+import type { AssetKey } from "../../assetpack/assets";
 
 // Horizontal distance between adjacent piece slots. Must exceed CPIECE_WIDTH
 // so an arrow fits in the gap between two pieces.

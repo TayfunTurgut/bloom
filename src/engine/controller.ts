@@ -1,5 +1,5 @@
 import { Application, type ApplicationOptions } from "pixi.js";
-import { CContainer } from "../components/common/container";
+import { CContainer } from "./container";
 
 export abstract class CBaseController extends CContainer {
   app = new Application();

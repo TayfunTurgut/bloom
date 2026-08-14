@@ -1,4 +1,4 @@
-import { CGameController } from "./controllers/game";
+import { CGameController } from "./game/controller";
 import "./style.css";
 
 function main() {

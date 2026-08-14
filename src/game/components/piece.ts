@@ -1,7 +1,7 @@
 import { Sprite, Text, Texture } from "pixi.js";
-import { CContainer } from "./common/container";
-import { getAsset } from "../utils/assets";
-import type { AssetKey } from "../assetpack/assets";
+import { CContainer } from "../../engine/container";
+import { getAsset } from "../assets";
+import type { AssetKey } from "../../assetpack/assets";
 
 export const CPIECE_WIDTH = 80;
 export const CPIECE_HEIGHT = 80;

@@ -1,10 +1,7 @@
 import { Sprite, Text, type Texture } from "pixi.js";
-import { CContainer } from "../common/container";
-import { getAsset } from "../../utils/assets";
-import {
-  COLOR_FONT_FILL_GRAY,
-  COLOR_FONT_STROKE_GRAY,
-} from "../../utils/color";
+import { CContainer } from "../../../engine/container";
+import { getAsset } from "../../assets";
+import { COLOR_FONT_FILL_GRAY, COLOR_FONT_STROKE_GRAY } from "../../colors";
 
 export class CGoalHud extends CContainer<{
   background: Sprite;

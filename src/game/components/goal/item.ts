@@ -1,11 +1,8 @@
 import { Sprite, Text, Texture } from "pixi.js";
-import { CContainer } from "../common/container";
-import {
-  COLOR_FONT_FILL_GRAY,
-  COLOR_FONT_STROKE_GRAY,
-} from "../../utils/color";
-import { getAsset } from "../../utils/assets";
-import type { AssetKey } from "../../assetpack/assets";
+import { CContainer } from "../../../engine/container";
+import { COLOR_FONT_FILL_GRAY, COLOR_FONT_STROKE_GRAY } from "../../colors";
+import { getAsset } from "../../assets";
+import type { AssetKey } from "../../../assetpack/assets";
 
 type TGoalItemProps = {
   goalCount: number;

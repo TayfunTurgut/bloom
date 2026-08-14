@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { AssetKey } from "../assetpack/assets";
+import type { AssetKey } from "../../assetpack/assets";
 
 const cellSchema = z.object({
   type: z.enum(["FILLED", "EMPTY"]).default("FILLED"),
