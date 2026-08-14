@@ -1,13 +1,14 @@
+import { defineConfig } from "eslint/config";
 import js from "@eslint/js";
 import prettier from "eslint-plugin-prettier/recommended";
 import tseslint from "typescript-eslint";
 
-export default tseslint.config(
-  { ignores: ["dist"] },
+export default defineConfig(
+  { ignores: ["dist", "ios"] },
   {
     extends: [
       js.configs.recommended,
-      ...tseslint.configs.recommendedTypeChecked,
+      tseslint.configs.recommendedTypeChecked,
       prettier,
     ],
     files: ["**/*.{ts,tsx}"],
@@ -16,7 +17,9 @@ export default tseslint.config(
       sourceType: "module",
       parserOptions: {
         projectService: {
-          allowDefaultProject: ["*.ts", "*.mjs"],
+          // Root *.ts configs are covered by tsconfig.json's include now;
+          // only the eslint config itself needs the default project.
+          allowDefaultProject: ["*.mjs"],
         },
         tsconfigRootDir: import.meta.dirname,
       },
