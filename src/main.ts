@@ -1,5 +1,6 @@
 import "./style.css";
 import { createEngine } from "./engine/app";
+import { initPlatform, notifySceneReady } from "./engine/platform/capacitor";
 import { CGameController } from "./game/controller";
 import { COLOR_BACKGROUND } from "./game/colors";
 import type { AssetKey } from "./assetpack/assets";
@@ -15,8 +16,11 @@ async function main() {
     manifestUrl: "assets/manifest.json",
     appOptions: { background: COLOR_BACKGROUND },
   });
+  await initPlatform(engine.app);
 
   await new CGameController(engine).start();
+
+  await notifySceneReady();
 }
 
 void main();
