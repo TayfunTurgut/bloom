@@ -1,6 +1,6 @@
 {
   "name": "bloom",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -12,7 +12,8 @@
     "dev": "vite",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "ios:sync": "pnpm build && cap sync ios",
+    "version:sync": "node scripts/sync-version.mjs",
+    "ios:sync": "pnpm run version:sync && pnpm build && cap sync ios",
     "ios:open": "cap open ios"
   },
   "dependencies": {

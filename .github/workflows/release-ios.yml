@@ -21,10 +21,6 @@ on:
     tags: ["v*"]
   workflow_dispatch:
     inputs:
-      marketing_version:
-        description: "Marketing version (e.g. 1.2.3). Required for manual runs."
-        type: string
-        required: false
       upload:
         description: "Upload the build to App Store Connect"
         type: boolean
@@ -64,24 +60,6 @@ jobs:
           sudo xcode-select -s "$app"
           xcodebuild -version
 
-      - name: Resolve version and build number
-        id: version
-        run: |
-          if [ "${{ github.ref_type }}" = "tag" ]; then
-            version="${GITHUB_REF_NAME#v}"
-          else
-            version="${{ inputs.marketing_version }}"
-          fi
-          if [ -z "$version" ]; then
-            echo "::error::No version. Push a v* tag or pass marketing_version."
-            exit 1
-          fi
-          # run_number is monotonic per workflow, so builds never collide in
-          # App Store Connect even when a version is re-archived.
-          echo "marketing=$version" >> "$GITHUB_OUTPUT"
-          echo "build=${{ github.run_number }}" >> "$GITHUB_OUTPUT"
-          echo "Building $version ($GITHUB_RUN_NUMBER)"
-
       - uses: pnpm/action-setup@v4
         with:
           version: 10
@@ -91,10 +69,32 @@ jobs:
           node-version: 22
           cache: pnpm
 
+      # package.json is the source of truth for the marketing version; the
+      # committed pbxproj is generated from it by scripts/sync-version.mjs.
+      - name: Resolve version and build number
+        id: version
+        run: |
+          set -euo pipefail
+          version="$(node -p 'require("./package.json").version')"
+          # A tag disagreeing with package.json means the bump was never
+          # committed; archiving it would ship a version nobody wrote down.
+          if [ "${{ github.ref_type }}" = "tag" ] && [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match package.json version $version."
+            exit 1
+          fi
+          # run_number is monotonic per workflow, so builds never collide in
+          # App Store Connect even when a version is re-archived.
+          echo "marketing=$version" >> "$GITHUB_OUTPUT"
+          echo "build=${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+          echo "Building $version ($GITHUB_RUN_NUMBER)"
+
       # Must run before xcodebuild: Package.swift resolves the Capacitor plugins
       # through literal node_modules/.pnpm/... paths, so SPM fails without them.
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Verify Xcode project version is in sync
+        run: pnpm run version:sync --check
 
       - name: Build web and sync native project
         run: pnpm ios:sync
@@ -151,9 +151,9 @@ jobs:
           echo "profile_name=$name" >> "$GITHUB_OUTPUT"
           echo "Installed profile: $name"
 
-      # Version and signing are passed as overrides so no file in the repo is
-      # mutated — MARKETING_VERSION/CURRENT_PROJECT_VERSION stay at their
-      # placeholder values in project.pbxproj.
+      # MARKETING_VERSION comes from the committed pbxproj, which the check
+      # above proved matches package.json. Only the build number is overridden:
+      # it is CI-derived and has no source of truth in the repo.
       - name: Archive
         env:
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
@@ -165,7 +165,6 @@ jobs:
             -configuration Release \
             -destination 'generic/platform=iOS' \
             -archivePath "$ARCHIVE_PATH" \
-            MARKETING_VERSION='${{ steps.version.outputs.marketing }}' \
             CURRENT_PROJECT_VERSION='${{ steps.version.outputs.build }}' \
             DEVELOPMENT_TEAM="$TEAM_ID" \
             CODE_SIGN_STYLE=Manual \

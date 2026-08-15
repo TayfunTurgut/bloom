@@ -37,6 +37,11 @@ jobs:
       - name: Check formatting
         run: pnpm format:check
 
+      # package.json is the source of truth for the marketing version; the
+      # pbxproj copy is generated and committed, so it can drift.
+      - name: Verify Xcode project version is in sync
+        run: pnpm run version:sync --check
+
       # assetpack -> eslint -> tsc -> vite build. The order is load-bearing:
       # assetpack regenerates src/assetpack/assets.d.ts, which lint and tsc read.
       - name: Build
