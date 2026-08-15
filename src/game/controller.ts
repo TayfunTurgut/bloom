@@ -116,7 +116,7 @@ export class CGameController extends CContainer {
     this.board.on("board:cellClicked", ({ x, y }) => this.store.place(x, y));
     this.container.addChild(this.board.container);
 
-    this.effects = new CEffects(this.board.effectContainer, app.ticker);
+    this.effects = new CEffects(this.board.effectContainer);
 
     this.tray = new CTray();
     this.container.addChild(this.tray.container);

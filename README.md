@@ -36,6 +36,12 @@ alone; the report carries only the sequence, which a re-render cannot recover,
 and only `components/fx.ts` reads it. Adding a cover kind means adding to
 `LAYER_BEHAVIORS` and `LAYER_VISUALS`, and TypeScript names both until you have.
 
+Effects are `motion` animating Pixi `Particle` objects inside a
+`ParticleContainer` — one container per cover kind, because a container batches
+a single texture and the kinds' art sits on different atlas pages. Motion runs
+its own rAF loop rather than `app.ticker`; that is fine for half-second bursts,
+but anything that must pause with the game belongs on the ticker instead.
+
 ## Develop
 
 ```bash

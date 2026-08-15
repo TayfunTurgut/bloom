@@ -16,7 +16,9 @@ export type TLayerVisual = {
    *  so a 3-hit vine visibly thins as it is chipped away and a 1-hit one just
    *  uses the last stage. */
   readonly stages: readonly AssetKey[];
-  /** Art for the burst played when this kind clears — see fx.ts. */
+  /** Art for one particle of the burst played when this kind clears — see
+   *  fx.ts. Drawn at roughly a third of a cell, so it wants a bright, simple
+   *  shape: the dimmer decor art reads as a smudge at that size. */
   readonly particle: AssetKey;
   readonly tint?: number;
 };
@@ -32,7 +34,7 @@ export const LAYER_VISUALS: Record<TBlockerKind, TLayerVisual> = {
   },
   STONE: {
     stages: ["tiles/stone_3", "tiles/stone_2", "tiles/stone"],
-    particle: "decor/star",
+    particle: "tiles/stone_3",
   },
 };
 

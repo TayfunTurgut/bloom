@@ -25,6 +25,7 @@
     "@capacitor/splash-screen": "^8.0.2",
     "@capacitor/status-bar": "^8.0.3",
     "@pixi/ui": "^2.3.2",
+    "motion": "^13.1.0",
     "pixi.js": "^8.19.0",
     "zod": "^4.4.3"
   },
