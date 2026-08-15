@@ -6,7 +6,8 @@
   "scripts": {
     "assetpack": "assetpack",
     "start": "pnpm dev",
-    "build": "pnpm assetpack && pnpm lint && tsc && vite build",
+    "build": "pnpm assetpack && pnpm format:check && pnpm lint && tsc && vite build",
+    "verify": "pnpm format:check && pnpm lint && pnpm typecheck",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "dev": "vite",
@@ -14,7 +15,8 @@
     "format:check": "prettier --check .",
     "version:sync": "node scripts/sync-version.mjs",
     "ios:sync": "pnpm run version:sync && pnpm build && cap sync ios",
-    "ios:open": "cap open ios"
+    "ios:open": "cap open ios",
+    "prepare": "git config core.hooksPath .githooks || true"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.1",

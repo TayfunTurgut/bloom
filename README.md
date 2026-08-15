@@ -19,8 +19,19 @@ pnpm install
 pnpm dev        # vite dev server on :8080; AssetPack watches src/assets/
 ```
 
-`pnpm build` runs `assetpack → eslint → tsc → vite build` — the order matters because
-AssetPack regenerates `src/assetpack/assets.d.ts`, which lint and tsc consume.
+`pnpm build` runs `assetpack → prettier → eslint → tsc → vite build` — the order
+matters because AssetPack regenerates `src/assetpack/assets.d.ts`, which the
+format, lint and tsc steps all consume.
+
+`pnpm verify` runs just the checks (`format:check → lint → typecheck`), skipping
+AssetPack and the bundle. `pnpm install` points `core.hooksPath` at `.githooks/`,
+whose `pre-commit` runs `pnpm verify` — so a commit that is misformatted, fails
+lint, or fails to typecheck is rejected. Bypass a single commit with
+`git commit --no-verify`.
+
+The hook checks the whole project, not just staged files: tsc and eslint are
+project-wide by nature. It deliberately does not run AssetPack, so if you change
+`src/assets/` remember `pnpm assetpack` — CI verifies `assets.d.ts` is current.
 
 ## iOS (requires macOS + Xcode 26+)
 
