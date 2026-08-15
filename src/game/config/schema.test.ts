@@ -43,6 +43,55 @@ describe("levelSchema", () => {
   });
 });
 
+describe("layered cells", () => {
+  const withCell = (cell: TLevelInput["data"][number]) =>
+    accepts({ data: [cell, ...cells(8)], columns: 3 });
+
+  it("accepts a flower under covers, and defaults a cover to one hit", () => {
+    const parsed = configSchema.parse(
+      withLevel({
+        data: [
+          { piece: "apple_half/happy", layers: [{ kind: "VINE" }] },
+          ...cells(8),
+        ],
+        columns: 3,
+      }),
+    );
+
+    expect(parsed.levels[0].data[0].layers).toEqual([
+      { kind: "VINE", hits: 1 },
+    ]);
+  });
+
+  it("accepts a cell that authors neither, which is every level shipped before now", () => {
+    const parsed = configSchema.parse(withLevel({}));
+    expect(parsed.levels[0].data[0].layers).toEqual([]);
+  });
+
+  // createInitialState skips an EMPTY cell outright, so anything authored on
+  // one would vanish without a word. Caught at parse rather than at play.
+  it("rejects a hole that tries to hold covers or a flower", () => {
+    expect(withCell({ type: "EMPTY", layers: [{ kind: "VINE" }] })).toBe(false);
+    expect(withCell({ type: "EMPTY", piece: "apple_half/happy" })).toBe(false);
+  });
+
+  // Only level.pieces is preloaded, so a flower from outside that pool would
+  // resolve to a missing texture — the check fromSnapshot already makes of a
+  // restored save, applied to authored content.
+  it("rejects a flower that is not in the level's piece pool", () => {
+    expect(withCell({ piece: "carrot/happy" })).toBe(false);
+  });
+
+  it("rejects an unknown cover kind and a zero-hit one", () => {
+    expect(
+      withCell({
+        layers: [{ kind: "BRAMBLE" } as unknown as { kind: "VINE" }],
+      }),
+    ).toBe(false);
+    expect(withCell({ layers: [{ kind: "VINE", hits: 0 }] })).toBe(false);
+  });
+});
+
 describe("the shipped config", () => {
   // config/index.ts parses at import, so a level edit that breaks the schema
   // fails here rather than at app startup.

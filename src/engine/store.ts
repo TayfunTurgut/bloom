@@ -1,4 +1,7 @@
-type TListener<TState> = (state: TState) => void;
+type TListener<TState, TEvent> = (
+  state: TState,
+  event: TEvent | undefined,
+) => void;
 
 /**
  * Minimal observable state container: one owned value plus listeners that fire
@@ -8,9 +11,15 @@ type TListener<TState> = (state: TState) => void;
  * method per action, mutating the state and then calling `notify`. Views
  * subscribe and re-render from the state they are handed, so no view ever has
  * to keep a copy of the data it draws.
+ *
+ * A subclass may also declare `TEvent`, an optional description of *what* the
+ * change was, handed to listeners alongside the state. The state stays the
+ * source of truth — the event carries only what cannot be recovered from it,
+ * such as the order things happened in. `undefined` is honest rather than a
+ * gap: a store can notify for a reason it has nothing to say about.
  */
-export class CStore<TState> {
-  private readonly listeners = new Set<TListener<TState>>();
+export class CStore<TState, TEvent = never> {
+  private readonly listeners = new Set<TListener<TState, TEvent>>();
 
   constructor(protected _state: TState) {}
 
@@ -24,7 +33,7 @@ export class CStore<TState> {
   }
 
   /** Returns an unsubscribe function. */
-  subscribe(listener: TListener<TState>): () => void {
+  subscribe(listener: TListener<TState, TEvent>): () => void {
     this.listeners.add(listener);
     return () => {
       this.listeners.delete(listener);
@@ -39,9 +48,9 @@ export class CStore<TState> {
    * that is already safe — but a guarantee that one change reaches one
    * consistent set of views.
    */
-  protected notify() {
+  protected notify(event?: TEvent) {
     for (const listener of [...this.listeners]) {
-      listener(this._state);
+      listener(this._state, event);
     }
   }
 }

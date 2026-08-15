@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   createInitialState,
+  exposedPieceAt,
   goalRemaining,
   isGoalComplete,
   PIECE_VALUE_MAX,
@@ -8,14 +9,23 @@ import {
   TRAY_SIZE,
   type TLevel,
 } from "./rules";
+import { pieceIn } from "./layers";
 import { cellIdFromXY } from "../id";
 import type { TGameState, TPiece } from "./types";
 
 const APPLE = "apple_half/happy";
 const CARROT = "carrot/happy";
 
+/** TLevel is the schema's *output* type, so a fixture spells out the defaults
+ *  the parser would have filled in. */
+const cell = (over: Partial<TLevel["data"][number]> = {}) => ({
+  type: "FILLED" as const,
+  layers: [],
+  ...over,
+});
+
 const level: TLevel = {
-  data: Array.from({ length: 9 }, () => ({ type: "FILLED" as const })),
+  data: Array.from({ length: 9 }, () => cell()),
   columns: 3,
   goals: [{ type: APPLE, count: 2 }],
   pieces: [APPLE, CARROT],
@@ -24,8 +34,8 @@ const level: TLevel = {
 /** The same 3x3 board with the centre cell cut out. */
 const holedLevel: TLevel = {
   ...level,
-  data: level.data.map((cell, index) =>
-    index === 4 ? { type: "EMPTY" as const } : cell,
+  data: level.data.map((entry, index) =>
+    index === 4 ? cell({ type: "EMPTY" }) : entry,
   ),
 };
 
@@ -43,15 +53,24 @@ const stack = (state: TGameState, ...pieces: Partial<TPiece>[]) => {
   }));
 };
 
-const at = (state: TGameState, x: number, y: number) =>
-  state.board.get(cellIdFromXY(x, y));
+/** The flower in a cell, covered or not — most tests care about the flower,
+ *  not the stack it happens to be under. */
+const at = (state: TGameState, x: number, y: number) => {
+  const cell = state.board.get(cellIdFromXY(x, y));
+  return cell ? pieceIn(cell) : undefined;
+};
+
+const stackAt = (state: TGameState, x: number, y: number) =>
+  state.board.get(cellIdFromXY(x, y))?.layers;
 
 describe("createInitialState", () => {
   it("opens with an empty board, a full tray and zeroed goals", () => {
     const state = createInitialState(0, level, SEED);
 
     expect(state.board.size).toBe(9);
-    expect([...state.board.values()].every((cell) => cell === null)).toBe(true);
+    expect(
+      [...state.board.values()].every((cell) => cell.layers.length === 0),
+    ).toBe(true);
     expect(state.tray).toHaveLength(TRAY_SIZE);
     expect(state.goals).toEqual([{ type: APPLE, target: 2, progress: 0 }]);
     expect(state.moves).toBe(0);
@@ -75,9 +94,10 @@ describe("createInitialState", () => {
       placeFromTray(state, move % 3, Math.floor(move / 3));
     }
 
-    const drawn = [...state.board.values(), ...state.tray].filter(
-      (piece): piece is TPiece => piece != null,
-    );
+    const drawn = [
+      ...[...state.board.values()].map(pieceIn),
+      ...state.tray,
+    ].filter((piece): piece is TPiece => piece != null);
     expect(drawn.every((piece) => level.pieces.includes(piece.assetKey))).toBe(
       true,
     );
@@ -89,7 +109,7 @@ describe("placeFromTray", () => {
     const state = createInitialState(0, level, SEED);
     const front = state.tray[state.tray.length - 1];
 
-    expect(placeFromTray(state, 1, 1)).toBe(true);
+    expect(placeFromTray(state, 1, 1)).not.toBeNull();
     expect(at(state, 1, 1)).toBe(front);
     expect(state.moves).toBe(1);
     expect(state.tray).toHaveLength(TRAY_SIZE);
@@ -156,9 +176,9 @@ describe("placeFromTray", () => {
     placeFromTray(state, 0, 0);
     const before = [...state.tray];
 
-    expect(placeFromTray(state, 0, 0)).toBe(false);
-    expect(placeFromTray(state, 3, 0)).toBe(false);
-    expect(placeFromTray(state, -1, 0)).toBe(false);
+    expect(placeFromTray(state, 0, 0)).toBeNull();
+    expect(placeFromTray(state, 3, 0)).toBeNull();
+    expect(placeFromTray(state, -1, 0)).toBeNull();
     expect(state.moves).toBe(1);
     expect(state.tray).toEqual(before);
   });
@@ -174,7 +194,7 @@ describe("a level with holes", () => {
     expect(state.board.size).toBe(8);
     expect(state.board.has(cellIdFromXY(1, 1))).toBe(false);
 
-    expect(placeFromTray(state, 1, 1)).toBe(false);
+    expect(placeFromTray(state, 1, 1)).toBeNull();
     expect(state.moves).toBe(0);
     expect(state.tray).toEqual(before);
   });
@@ -189,6 +209,61 @@ describe("a level with holes", () => {
 
     expect(at(state, 1, 2)?.type).toBe("BLOOM");
     expect(at(state, 1, 0)?.currentValue).toBe(5);
+  });
+});
+
+describe("a covered cell", () => {
+  /** A 3x3 board with a one-hit vine over a carrot in the centre. */
+  const vinedLevel: TLevel = {
+    ...level,
+    data: level.data.map((entry, index) =>
+      index === 4
+        ? cell({ piece: CARROT, layers: [{ kind: "VINE", hits: 1 }] })
+        : entry,
+    ),
+  };
+
+  it("stacks the authored flower under its cover, bottom to top", () => {
+    const state = createInitialState(0, vinedLevel, SEED);
+
+    expect(stackAt(state, 1, 1)?.map((layer) => layer.kind)).toEqual([
+      "PIECE",
+      "VINE",
+    ]);
+    expect(at(state, 1, 1)?.assetKey).toBe(CARROT);
+  });
+
+  it("refuses a placement and changes nothing", () => {
+    const state = createInitialState(0, vinedLevel, SEED);
+    const before = [...state.tray];
+
+    expect(placeFromTray(state, 1, 1)).toBeNull();
+    expect(state.moves).toBe(0);
+    expect(state.tray).toEqual(before);
+  });
+
+  it("keeps the flower under it out of the drain rules until uncovered", () => {
+    const state = createInitialState(0, vinedLevel, SEED);
+    const buried = at(state, 1, 1);
+    const buriedValue = buried?.currentValue;
+
+    // Covered: the placement finds no neighbour at all, so it stays a bloom
+    // and drains nothing — the vine is what makes that flower inert.
+    expect(exposedPieceAt(state, 1, 1)).toBeNull();
+    stack(state, { currentValue: 4 });
+    placeFromTray(state, 1, 0);
+
+    expect(at(state, 1, 0)?.type).toBe("BLOOM");
+    expect(buried?.currentValue).toBe(buriedValue);
+
+    // That same placement was adjacent, so it tore the one-hit vine open.
+    expect(stackAt(state, 1, 1)?.map((layer) => layer.kind)).toEqual(["PIECE"]);
+    expect(exposedPieceAt(state, 1, 1)).toBe(buried);
+
+    // Uncovered, it is an ordinary neighbour again.
+    stack(state, { currentValue: 3 });
+    placeFromTray(state, 0, 1);
+    expect(at(state, 0, 1)?.type).toBe("SUPPLY");
   });
 });
 

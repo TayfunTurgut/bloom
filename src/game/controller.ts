@@ -6,11 +6,14 @@ import { CContainer } from "../engine/container";
 import type { IEngine } from "../engine/app";
 import { CGoalPanel } from "./components/goal/panel";
 import { CBoard } from "./components/board";
+import { CEffects } from "./components/fx";
+import { LAYER_ASSET_KEYS } from "./components/layer";
 import { CTray } from "./components/tray";
 import { CCELL_HEIGHT, CCELL_WIDTH } from "./components/cell";
 import { createInitialState } from "./model/rules";
 import { fromSnapshot, toSnapshot } from "./model/serialize";
 import { CGameStore } from "./model/store";
+import type { TMoveReport } from "./model/resolve";
 import type { TGameState } from "./model/types";
 import { loadSaveState, saveSaveState } from "./state";
 import type { AssetKey } from "../assetpack/assets";
@@ -38,6 +41,7 @@ export class CGameController extends CContainer {
   private panel!: CGoalPanel;
   private board!: CBoard;
   private tray!: CTray;
+  private effects!: CEffects;
 
   constructor(private readonly engine: IEngine<AssetKey>) {
     super();
@@ -77,6 +81,10 @@ export class CGameController extends CContainer {
     await assets.load(
       [
         ...STATIC_ASSET_KEYS,
+        // Every registered cover's art, not just the kinds this level
+        // authors. There are two kinds and a handful of small frames; when the
+        // registry outgrows that, narrow this by scanning level.data.
+        ...LAYER_ASSET_KEYS,
         ...level.pieces,
         ...level.goals.map((goal) => goal.type),
       ],
@@ -108,11 +116,13 @@ export class CGameController extends CContainer {
     this.board.on("board:cellClicked", ({ x, y }) => this.store.place(x, y));
     this.container.addChild(this.board.container);
 
+    this.effects = new CEffects(this.board.effectContainer, app.ticker);
+
     this.tray = new CTray();
     this.container.addChild(this.tray.container);
 
-    this.store.subscribe((next) => {
-      this.render(next);
+    this.store.subscribe((next, report) => {
+      this.render(next, report);
       saveSaveState(toSnapshot(next));
     });
     this.render(state);
@@ -125,10 +135,19 @@ export class CGameController extends CContainer {
     app.stage.addChild(this.container);
   }
 
-  private render(state: TGameState) {
+  /**
+   * The views redraw from `state` alone — that is still the whole truth of what
+   * the board is. `report` is only ever the ordered account of what *happened*,
+   * and only the effects layer reads it: the opening render has no move behind
+   * it and passes none, which is why it is optional here rather than a gap.
+   */
+  private render(state: TGameState, report?: TMoveReport) {
     this.panel.render(state);
     this.board.render(state);
     this.tray.render(state);
+    if (report) {
+      this.effects.play(report, (cell) => this.board.positionOfCell(cell));
+    }
   }
 
   // Pin the goal panel to the top and the tray to the bottom, then scale the
