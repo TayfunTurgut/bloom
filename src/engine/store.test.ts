@@ -8,6 +8,21 @@ class CCounter extends CStore<{ count: number }> {
   }
 }
 
+/** A store whose changes also describe themselves — the shape CGameStore uses
+ *  to hand a move's ordered effect log to the views. */
+class CLedger extends CStore<{ count: number }, string[]> {
+  add(...reasons: string[]) {
+    this._state.count += reasons.length;
+    this.notify(reasons);
+  }
+
+  /** A change with nothing to say about itself, which is legal on purpose. */
+  reset() {
+    this._state.count = 0;
+    this.notify();
+  }
+}
+
 describe("CStore", () => {
   it("hands each listener the state as it stands after the change", () => {
     const store = new CCounter({ count: 0 });
@@ -65,5 +80,30 @@ describe("CStore", () => {
 
     store.increment();
     expect(seen).toEqual([2]);
+  });
+});
+
+describe("a store whose changes carry an event", () => {
+  it("hands the listener the state and the event together", () => {
+    const store = new CLedger({ count: 0 });
+    const seen: [number, string[] | undefined][] = [];
+    store.subscribe((state, event) => seen.push([state.count, event]));
+
+    store.add("first", "second");
+
+    expect(seen).toEqual([[2, ["first", "second"]]]);
+  });
+
+  it("passes undefined for a change with nothing to say", () => {
+    const store = new CLedger({ count: 0 });
+    const seen: (string[] | undefined)[] = [];
+    store.subscribe((_state, event) => seen.push(event));
+
+    store.add("a");
+    store.reset();
+
+    // The state is still the whole truth of what the value *is*; the event only
+    // ever adds what a re-read cannot recover. A store is free to have none.
+    expect(seen).toEqual([["a"], undefined]);
   });
 });

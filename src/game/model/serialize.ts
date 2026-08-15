@@ -1,22 +1,24 @@
 import { cellIdFromXY, type CellId } from "../id";
 import {
   SAVE_VERSION,
+  type TLayerSnapshot,
   type TPieceSnapshot,
   type TSaveState,
 } from "../state/schema";
 import type { TLevel } from "./rules";
-import type { TGameState, TPiece } from "./types";
+import type { TCell, TGameState, TLayer } from "./types";
 
 /** Plain data in, plain data out — no storage access, so this stays testable. */
 export const toSnapshot = (state: TGameState): TSaveState => {
-  const board: (TPieceSnapshot | null)[] = [];
+  const board: TLayerSnapshot[][] = [];
   // Written by explicit row-major loop rather than map iteration, so the order
   // never depends on how the board happened to be built. A hole and a bare cell
-  // both write null: the snapshot carries no board shape of its own, because
-  // fromSnapshot reads that back off the level.
+  // both write an empty stack: the snapshot carries no board shape of its own,
+  // because fromSnapshot reads that back off the level.
   for (let y = 0; y < state.rows; y++) {
     for (let x = 0; x < state.columns; x++) {
-      board.push(state.board.get(cellIdFromXY(x, y)) ?? null);
+      const cell = state.board.get(cellIdFromXY(x, y));
+      board.push(cell ? cell.layers.map(copyLayer) : []);
     }
   }
 
@@ -27,9 +29,10 @@ export const toSnapshot = (state: TGameState): TSaveState => {
     score: state.score,
     rng: state.rng,
     nextPieceId: state.nextPieceId,
+    nextLayerId: state.nextLayerId,
     goals: state.goals.map((goal) => ({ ...goal })),
     columns: state.columns,
-    board: board.map(copyPiece),
+    board,
     tray: state.tray.map((piece) => ({ ...piece })),
   };
 };
@@ -66,22 +69,29 @@ export const fromSnapshot = (
   if (!goalsMatch) return null;
 
   const pool = new Set<string>(level.pieces);
-  const pieces = [...snapshot.tray, ...snapshot.board.filter(isPiece)];
+  const boardPieces = snapshot.board.flatMap(piecesIn);
+  const pieces = [...snapshot.tray, ...boardPieces];
   if (!pieces.every((piece) => pool.has(piece.assetKey))) return null;
 
-  const board = new Map<CellId, TPiece | null>();
+  const board = new Map<CellId, TCell>();
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < columns; x++) {
       const index = y * columns + x;
+      const stack = snapshot.board[index];
       if (level.data[index].type === "EMPTY") {
-        // A piece parked where the level now has a hole means the save predates
-        // the edit, so it goes the same way as any other stale save.
-        if (snapshot.board[index] !== null) return null;
+        // Anything parked where the level now has a hole means the save
+        // predates the edit, so it goes the same way as any other stale save.
+        if (stack.length > 0) return null;
         continue;
       }
-      board.set(cellIdFromXY(x, y), copyPiece(snapshot.board[index]));
+      board.set(cellIdFromXY(x, y), { layers: stack.map(copyLayer) });
     }
   }
+
+  // Deliberately no check that the restored covers match what the level
+  // authors. Unlike a hole, a layer is mutable game state: the moment the
+  // player clears one it legitimately diverges from the level file, and
+  // rejecting that would throw away the save on the first successful move.
 
   return {
     level: levelIndex,
@@ -99,14 +109,26 @@ export const fromSnapshot = (
       (max, piece) => Math.max(max, piece.id + 1),
       snapshot.nextPieceId,
     ),
+    // The same guarantee for layers, which have their own counter and their
+    // own keyed lookup in the board's blocker views.
+    nextLayerId: snapshot.board
+      .flat()
+      .reduce(
+        (max, layer) => Math.max(max, layer.id + 1),
+        snapshot.nextLayerId,
+      ),
     goals: snapshot.goals.map((goal) => ({ ...goal })),
     board,
     tray: snapshot.tray.map((piece) => ({ ...piece })),
   };
 };
 
-const isPiece = (piece: TPieceSnapshot | null): piece is TPieceSnapshot =>
-  piece !== null;
+const piecesIn = (stack: TLayerSnapshot[]): TPieceSnapshot[] =>
+  stack.filter((layer) => layer.kind === "PIECE").map((layer) => layer.piece);
 
-const copyPiece = (piece: TPiece | null): TPiece | null =>
-  piece === null ? null : { ...piece };
+/** Copied one level deeper than a spread, because a PIECE layer holds a piece
+ *  the restored game must not share with the snapshot it came from. */
+const copyLayer = (layer: TLayer): TLayer =>
+  layer.kind === "PIECE"
+    ? { ...layer, piece: { ...layer.piece } }
+    : { ...layer };

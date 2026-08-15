@@ -1,9 +1,11 @@
 import { z } from "zod";
 import type { AssetKey } from "../../assetpack/assets";
+import { BLOCKER_KINDS } from "../model/types";
 
 /** Bump when the shape changes: an older save then fails to parse and the
- *  player gets a fresh level instead of a half-understood one. */
-export const SAVE_VERSION = 1;
+ *  player gets a fresh level instead of a half-understood one. Went to 2 when
+ *  a board cell became a stack of layers rather than one optional piece. */
+export const SAVE_VERSION = 2;
 
 const assetKeySchema = z.custom<AssetKey>((v) => typeof v === "string");
 
@@ -16,6 +18,24 @@ const pieceSchema = z.object({
   startingValue: z.number().int(),
   currentValue: z.number().int(),
 });
+
+/** Mirrors TLayer. The kind enum is built from BLOCKER_KINDS rather than
+ *  spelled out, so a kind added to the union cannot be silently unsaveable. */
+const layerSchema = z.discriminatedUnion("kind", [
+  z.object({
+    id: z.number().int().min(1),
+    kind: z.literal("PIECE"),
+    piece: pieceSchema,
+  }),
+  z.object({
+    id: z.number().int().min(1),
+    kind: z.enum(BLOCKER_KINDS),
+    // Saved mid-move a cover can sit at zero for no longer than one call, so
+    // anything persisted is still standing and has at least one hit left.
+    hits: z.number().int().min(1),
+    maxHits: z.number().int().min(1),
+  }),
+]);
 
 const goalSchema = z.object({
   type: assetKeySchema,
@@ -31,17 +51,21 @@ export const saveStateSchema = z.object({
   score: z.number().int().min(0),
   rng: z.number().int(),
   nextPieceId: z.number().int().min(1),
+  nextLayerId: z.number().int().min(1),
   goals: z.array(goalSchema),
   /** Recorded so a level reshaped to the same cell count — 3x3 into 9x1 —
    *  is caught rather than silently reinterpreted. */
   columns: z.number().int().min(1),
-  /** Row-major, one entry per cell of the level. */
-  board: z.array(pieceSchema.nullable()),
+  /** Row-major, one stack per cell of the level. A hole and a bare cell both
+   *  write an empty stack: the snapshot carries no board shape of its own,
+   *  because fromSnapshot reads that back off the level. */
+  board: z.array(z.array(layerSchema)),
   tray: z.array(pieceSchema),
 });
 
 export type TSaveState = z.infer<typeof saveStateSchema>;
 export type TPieceSnapshot = z.infer<typeof pieceSchema>;
+export type TLayerSnapshot = z.infer<typeof layerSchema>;
 
 /**
  * What a player with no save gets. Its empty board never matches a real
@@ -55,6 +79,7 @@ export const emptySaveState = (): TSaveState => ({
   score: 0,
   rng: 0,
   nextPieceId: 1,
+  nextLayerId: 1,
   goals: [],
   columns: 1,
   board: [],

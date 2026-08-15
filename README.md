@@ -15,6 +15,27 @@ A PixiJS v8 puzzle game, packaged with Capacitor 8 for iPhone and iPad (iOS 15+)
 - `src/assets/` — raw art/fonts (input); `public/assets/` is generated output (git-ignored).
 - `ios/` — Capacitor-generated Xcode project (SPM-based; committed).
 
+## Layered cells
+
+A board cell is a stack, bottom to top: a flower and any covers over it. Each
+cover kind has one entry in `LAYER_BEHAVIORS` (`model/layers.ts`) declaring
+whether it blocks placement, whether it hides what it covers, which triggers it
+wants, and a pure `react` returning an outcome — damage, clear, replace, or
+nothing. A vine thins when the player plays beside it; a stone slab erodes once
+per move wherever they play.
+
+That registry is a lookup table, deliberately not a subscription list. Ordering
+lives in `resolveLayers` (`model/resolve.ts`), which walks a fixed phase order
+and dispatches only to each cell's topmost layer, so resolution is
+deterministic and testable rather than dependent on the order listeners
+happened to attach.
+
+A move returns a `TMoveReport`: an ordered log of what happened. The state is
+still the whole truth of what the board _is_, and the views redraw from it
+alone; the report carries only the sequence, which a re-render cannot recover,
+and only `components/fx.ts` reads it. Adding a cover kind means adding to
+`LAYER_BEHAVIORS` and `LAYER_VISUALS`, and TypeScript names both until you have.
+
 ## Develop
 
 ```bash
