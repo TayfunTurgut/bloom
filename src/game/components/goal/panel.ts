@@ -5,12 +5,7 @@ import { CGoalHud } from "./hud";
 import { getAsset } from "../../assets";
 import { COLOR_FONT_FILL_BROWN } from "../../colors";
 import config from "../../config";
-import type { AssetKey } from "../../../assetpack/assets";
-
-type TGoalPanelProps = {
-  goals: { type: AssetKey; count: number }[];
-  level: number;
-};
+import type { TGameState, TGoal } from "../../model/types";
 
 const ITEM_X_OFFSETS = [-0.35, -0.185, 0.185, 0.35];
 
@@ -24,25 +19,18 @@ export class CGoalPanel extends CContainer<
   private hud!: CGoalHud;
   private items: CGoalItem[] = [];
 
-  constructor(props: TGoalPanelProps) {
+  constructor(state: TGameState) {
     super();
 
     this.createBackground();
-    this.createGoalItems(props.goals);
+    this.createGoalItems(state.goals);
     this.createHud();
-    this.createLevelText(props.level);
+    this.createLevelText(state.level);
   }
 
-  updateMoves(value: number) {
-    this.hud.updateMoveCounter(value);
-  }
-
-  updateGoal(index: number, remaining: number) {
-    this.items[index]?.updateGoalCount(remaining);
-  }
-
-  setGoalComplete(index: number, complete: boolean) {
-    this.items[index]?.setComplete(complete);
+  render(state: TGameState) {
+    this.hud.render(state.moves);
+    state.goals.forEach((goal, index) => this.items[index]?.render(goal));
   }
 
   private createBackground() {
@@ -53,13 +41,10 @@ export class CGoalPanel extends CContainer<
     this.addNamedChild("background", background);
   }
 
-  private createGoalItems(goals: { type: AssetKey; count: number }[]) {
+  private createGoalItems(goals: TGoal[]) {
     const background = this.getChildByLabel("background");
     goals.forEach((goal, index) => {
-      const item = new CGoalItem({
-        goalCount: goal.count,
-        goalType: goal.type,
-      });
+      const item = new CGoalItem(goal);
       const scale = background.width / item.container.width;
       item.container.scale.set(scale * 0.15);
       item.container.position.set(
@@ -85,7 +70,7 @@ export class CGoalPanel extends CContainer<
     const background = this.getChildByLabel("background");
     const font = getAsset<FontFace>("Baloo2-Bold");
     const text = new Text({
-      text: `~${level}~`,
+      text: `~${level + 1}~`, // levels are 0-indexed in state, 1-indexed on screen
       style: {
         fontFamily: font.family,
         fontWeight: "bold",

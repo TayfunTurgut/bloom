@@ -14,9 +14,8 @@ export class CGoalHud extends CContainer<{
     this.createMoveCounter();
   }
 
-  updateMoveCounter(value: number) {
-    const moveCounter = this.getChildByLabel("moveCounter");
-    moveCounter.text = value;
+  render(moves: number) {
+    this.getChildByLabel("moveCounter").text = moves;
   }
 
   private createBackground() {

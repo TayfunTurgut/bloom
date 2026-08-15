@@ -37,6 +37,11 @@ jobs:
       - name: Check formatting
         run: pnpm format:check
 
+      # Model-only unit tests: no pixi, no assets, so they run before the
+      # build and fail fast.
+      - name: Test
+        run: pnpm test
+
       # package.json is the source of truth for the marketing version; the
       # pbxproj copy is generated and committed, so it can drift.
       - name: Verify Xcode project version is in sync

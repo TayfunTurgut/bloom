@@ -7,7 +7,8 @@
     "assetpack": "assetpack",
     "start": "pnpm dev",
     "build": "pnpm assetpack && pnpm format:check && pnpm lint && tsc && vite build",
-    "verify": "pnpm format:check && pnpm lint && pnpm typecheck",
+    "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test",
+    "test": "vitest run",
     "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc --noEmit",
     "dev": "vite",
@@ -39,6 +40,7 @@
     "prettier": "^3.5.3",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.67.0",
-    "vite": "^8.2.1"
+    "vite": "^8.2.1",
+    "vitest": "^4.1.10"
   }
 }
