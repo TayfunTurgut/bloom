@@ -197,9 +197,21 @@ export class CGameController extends CContainer {
     }
 
     this.state.moves += 1;
-    // TODO: advance goal progress here once the rule for which placement
-    // counts toward which goal is defined.
+    this.advanceGoals(flower);
     this.updatePanel();
+  }
+
+  // A placement advances every goal whose type matches the art of the flower
+  // just placed, by one, regardless of whether it landed as a bloom or a
+  // supply — the goal panel shows a flower and a count, so "place that many of
+  // this flower" is what the player reads off it. Clamped at the target so an
+  // already-complete goal cannot overshoot and drive the remaining count
+  // negative.
+  private advanceGoals(flower: CPiece) {
+    for (const goal of this.state.goals) {
+      if (goal.type !== flower.assetKey) continue;
+      goal.progress = Math.min(goal.target, goal.progress + 1);
+    }
   }
 
   private getNeighbors(x: number, y: number): CPiece[] {
