@@ -1,48 +1,49 @@
 import { CCell, CCELL_HEIGHT, CCELL_WIDTH } from "./cell";
 import { CPiece } from "./piece";
+import { syncPieceViews, type TPiecePlacement } from "./pieces";
 import { CContainer, type TNone } from "../../engine/container";
-
-type IBoardOptions = {
-  rows: number;
-  columns: number;
-};
+import { cellIdFromXY } from "../id";
+import type { TGameState } from "../model/types";
 
 export type TBoardEvents = {
-  "board:cellClicked": [{ cell: CCell }];
+  "board:cellClicked": [{ x: number; y: number }];
 };
 
+/**
+ * The view of the board half of the state. It holds no idea of what is placed
+ * where — `render` reads that from the state every time.
+ */
 export class CBoard extends CContainer<TNone, TBoardEvents> {
-  constructor(private readonly options: IBoardOptions) {
+  private readonly rows: number;
+  private readonly columns: number;
+  private readonly pieces = new Map<number, CPiece>();
+
+  constructor(state: TGameState) {
     super();
 
-    this.init();
+    this.rows = state.rows;
+    this.columns = state.columns;
+    this.createCells();
   }
 
-  addFlowerView({ flower, x, y }: { flower: CPiece; x: number; y: number }) {
-    this.container.addChild(flower.container);
-
-    const { columns, rows } = this.options;
-    const totalWidth = CCELL_WIDTH * columns;
-    const totalHeight = CCELL_HEIGHT * rows;
-    flower.container.position.set(
-      -totalWidth * 0.5 + CCELL_WIDTH * 0.5 + CCELL_WIDTH * x,
-      -totalHeight * 0.5 + CCELL_HEIGHT * 0.5 + CCELL_HEIGHT * y,
-    );
+  render(state: TGameState) {
+    const placements: TPiecePlacement[] = [];
+    for (let y = 0; y < this.rows; y++) {
+      for (let x = 0; x < this.columns; x++) {
+        const piece = state.board.get(cellIdFromXY(x, y));
+        if (!piece) continue;
+        placements.push({ piece, ...this.positionOf(x, y) });
+      }
+    }
+    syncPieceViews(this.pieces, this.container, placements);
   }
 
-  private init() {
-    const { columns, rows } = this.options;
-    const totalWidth = CCELL_WIDTH * columns;
-    const totalHeight = CCELL_HEIGHT * rows;
-    for (let x = 0; x < columns; x++) {
-      for (let y = 0; y < rows; y++) {
+  private createCells() {
+    for (let x = 0; x < this.columns; x++) {
+      for (let y = 0; y < this.rows; y++) {
         const cell = new CCell({ x, y });
         this.container.addChild(cell.container);
-
-        cell.container.position.set(
-          -totalWidth * 0.5 + CCELL_WIDTH * 0.5 + CCELL_WIDTH * x,
-          -totalHeight * 0.5 + CCELL_HEIGHT * 0.5 + CCELL_HEIGHT * y,
-        );
+        cell.container.position.copyFrom(this.positionOf(x, y));
 
         // "pointertap" fires for mouse and touch; "click" is mouse-only.
         cell.on("pointertap", () => this.onCellClicked(cell), this);
@@ -50,7 +51,16 @@ export class CBoard extends CContainer<TNone, TBoardEvents> {
     }
   }
 
+  private positionOf(x: number, y: number) {
+    const totalWidth = CCELL_WIDTH * this.columns;
+    const totalHeight = CCELL_HEIGHT * this.rows;
+    return {
+      x: -totalWidth * 0.5 + CCELL_WIDTH * 0.5 + CCELL_WIDTH * x,
+      y: -totalHeight * 0.5 + CCELL_HEIGHT * 0.5 + CCELL_HEIGHT * y,
+    };
+  }
+
   private onCellClicked(cell: CCell) {
-    this.emit("board:cellClicked", { cell });
+    this.emit("board:cellClicked", { x: cell.data.x, y: cell.data.y });
   }
 }

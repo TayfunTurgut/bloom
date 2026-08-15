@@ -1,33 +1,30 @@
 import { Sprite, Text, Texture } from "pixi.js";
 import { CContainer } from "../../engine/container";
 import { getAsset } from "../assets";
-import type { AssetKey } from "../../assetpack/assets";
+import type { TPiece } from "../model/types";
 
 export const CPIECE_WIDTH = 80;
 export const CPIECE_HEIGHT = 80;
 
-export enum EFlowerType {
-  BLOOM,
-  SUPPLY,
-}
-
+/**
+ * Draws one flower. Owns no game data: the piece it was built from lives in
+ * the store, and `sync` re-reads it. `id` is kept only so the board and tray
+ * can match their sprites back to the state they came from.
+ */
 export class CPiece extends CContainer<{
   sprite: Sprite;
   value: Text;
 }> {
-  type = EFlowerType.BLOOM;
-  readonly assetKey: AssetKey;
-  startingValue: number;
-  private _currentValue: number;
+  readonly id: number;
+  private drawnValue: number;
 
-  constructor(assetKey: AssetKey, value: number) {
+  constructor(piece: TPiece) {
     super();
 
-    this.assetKey = assetKey;
-    this.startingValue = value;
-    this._currentValue = value;
+    this.id = piece.id;
+    this.drawnValue = piece.currentValue;
 
-    const sprite = new Sprite(getAsset<Texture>(assetKey));
+    const sprite = new Sprite(getAsset<Texture>(piece.assetKey));
     sprite.anchor.set(0.5);
     const scale = Math.min(
       CPIECE_WIDTH / sprite.width,
@@ -37,7 +34,7 @@ export class CPiece extends CContainer<{
     this.addNamedChild("sprite", sprite);
 
     const text = new Text({
-      text: value,
+      text: piece.currentValue,
       style: {
         fill: "#ffffff",
         stroke: { color: "#3d3d3d", width: 4 },
@@ -49,12 +46,14 @@ export class CPiece extends CContainer<{
     this.addNamedChild("value", text);
   }
 
-  get currentValue() {
-    return this._currentValue;
+  /** Pulls display state back in line with `piece`. */
+  sync(piece: TPiece) {
+    if (piece.currentValue === this.drawnValue) return;
+    this.drawnValue = piece.currentValue;
+    this.getChildByLabel("value").text = piece.currentValue;
   }
 
-  set currentValue(value: number) {
-    this._currentValue = value;
-    this.getChildByLabel("value").text = value;
+  destroy() {
+    this.container.destroy({ children: true });
   }
 }

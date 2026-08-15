@@ -5,9 +5,12 @@ A PixiJS v8 puzzle game, packaged with Capacitor 8 for iPhone and iPad (iOS 15+)
 ## Structure
 
 - `src/engine/` — reusable, game-agnostic: app bootstrap (`createEngine`), typed
-  `Container` wrapper, on-demand manifest asset loader, resize/storage helpers,
-  Capacitor platform glue. Future games build on this.
-- `src/game/` — Bloom-specific: components, controller, level config, save state.
+  `Container` wrapper, observable `CStore`, on-demand manifest asset loader,
+  resize/storage helpers, Capacitor platform glue. Future games build on this.
+- `src/game/model/` — the single source of truth: `TGameState` (board, tray,
+  goals, score) as plain data, the rules that change it, and snapshot
+  serialization. No pixi imports, so it is directly unit-testable.
+- `src/game/` — the rest of Bloom: components, controller, level config, save state.
 - `src/assetpack/` — build-time AssetPack pipes + the generated `assets.d.ts` key union.
 - `src/assets/` — raw art/fonts (input); `public/assets/` is generated output (git-ignored).
 - `ios/` — Capacitor-generated Xcode project (SPM-based; committed).
@@ -23,11 +26,15 @@ pnpm dev        # vite dev server on :8080; AssetPack watches src/assets/
 matters because AssetPack regenerates `src/assetpack/assets.d.ts`, which the
 format, lint and tsc steps all consume.
 
-`pnpm verify` runs just the checks (`format:check → lint → typecheck`), skipping
-AssetPack and the bundle. `pnpm install` points `core.hooksPath` at `.githooks/`,
-whose `pre-commit` runs `pnpm verify` — so a commit that is misformatted, fails
-lint, or fails to typecheck is rejected. Bypass a single commit with
-`git commit --no-verify`.
+`pnpm verify` runs just the checks (`format:check → lint → typecheck → test`),
+skipping AssetPack and the bundle. `pnpm install` points `core.hooksPath` at
+`.githooks/`, whose `pre-commit` runs `pnpm verify` — so a commit that is
+misformatted, fails lint, fails to typecheck or breaks a test is rejected.
+Bypass a single commit with `git commit --no-verify`.
+
+`pnpm test` (vitest) covers `src/game/model/` only. Those tests need neither a
+browser nor the art pipeline, so they run in the node environment in well under
+a second.
 
 The hook checks the whole project, not just staged files: tsc and eslint are
 project-wide by nature. It deliberately does not run AssetPack, so if you change

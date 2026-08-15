@@ -1,4 +1,6 @@
-import { defineConfig, type Plugin } from "vite";
+// vitest/config re-exports vite's defineConfig with the `test` block typed.
+import { defineConfig } from "vitest/config";
+import type { Plugin } from "vite";
 import { AssetPack } from "@assetpack/core";
 import assetpackConfig from "./.assetpack.js";
 
@@ -9,7 +11,10 @@ function assetpackWatch(): Plugin {
   let assetpack: AssetPack | undefined;
   return {
     name: "assetpack-watch",
-    apply: "serve",
+    // `vite dev` only. Vitest also runs in serve mode, and letting the asset
+    // pipeline rewrite src/assetpack/assets.d.ts during a test run would leave
+    // the tree dirty for CI's generated-types check.
+    apply: (_config, env) => env.command === "serve" && env.mode !== "test",
     async buildStart() {
       if (assetpack) return;
       assetpack = new AssetPack(assetpackConfig);
@@ -31,4 +36,10 @@ export default defineConfig({
     host: true,
   },
   plugins: [assetpackWatch()],
+  // Only the model is tested, and it imports neither pixi nor the DOM, so the
+  // node environment is enough — no jsdom, no asset pipeline.
+  test: {
+    environment: "node",
+    include: ["src/**/*.test.ts"],
+  },
 });

@@ -2,12 +2,8 @@ import { Sprite, Text, Texture } from "pixi.js";
 import { CContainer } from "../../../engine/container";
 import { COLOR_FONT_FILL_GRAY, COLOR_FONT_STROKE_GRAY } from "../../colors";
 import { getAsset } from "../../assets";
-import type { AssetKey } from "../../../assetpack/assets";
-
-type TGoalItemProps = {
-  goalCount: number;
-  goalType: AssetKey;
-};
+import { goalRemaining, isGoalComplete } from "../../model/rules";
+import type { TGoal } from "../../model/types";
 
 export class CGoalItem extends CContainer<{
   background: Sprite;
@@ -15,23 +11,19 @@ export class CGoalItem extends CContainer<{
   goalText: Text;
   tickMark: Sprite;
 }> {
-  constructor(props: TGoalItemProps) {
+  constructor(goal: TGoal) {
     super();
 
     this.createBackground();
-    this.createGoalText(props.goalCount);
+    this.createGoalText(goal);
     this.createTickMark();
-    this.createGoalImage(props.goalType);
+    this.createGoalImage(goal);
   }
 
-  updateGoalCount(newGoalCount: number) {
-    const goalText = this.getChildByLabel("goalText");
-    goalText.text = newGoalCount;
-  }
-
-  setComplete(complete: boolean) {
-    const tickMark = this.getChildByLabel("tickMark");
-    tickMark.visible = complete;
+  /** Remaining count and the completion tick are derived, never stored. */
+  render(goal: TGoal) {
+    this.getChildByLabel("goalText").text = goalRemaining(goal);
+    this.getChildByLabel("tickMark").visible = isGoalComplete(goal);
   }
 
   private createBackground() {
@@ -41,11 +33,11 @@ export class CGoalItem extends CContainer<{
     this.addNamedChild("background", background);
   }
 
-  private createGoalText(goalCount: number) {
+  private createGoalText(goal: TGoal) {
     const background = this.getChildByLabel("background");
     const font = getAsset<FontFace>("Baloo2-Regular");
     const text = new Text({
-      text: goalCount,
+      text: goalRemaining(goal),
       style: {
         fontFamily: font.family,
         fontSize: 64,
@@ -76,9 +68,9 @@ export class CGoalItem extends CContainer<{
     sprite.visible = false;
   }
 
-  private createGoalImage(goalType: AssetKey) {
+  private createGoalImage(goal: TGoal) {
     const background = this.getChildByLabel("background");
-    const texture = getAsset<Texture>(goalType);
+    const texture = getAsset<Texture>(goal.type);
     const sprite = new Sprite({ texture });
     sprite.anchor.set(0.5);
     const scale = Math.min(

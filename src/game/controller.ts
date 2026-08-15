@@ -1,6 +1,5 @@
 import { CircularProgressBar } from "@pixi/ui";
 import config from "./config";
-import type { TConfig } from "./config/schema";
 import { COLOR_BACKGROUND, COLOR_GOAL_PROGRESS_FILL } from "./colors";
 import { onResize } from "../engine/resize";
 import { CContainer } from "../engine/container";
@@ -8,13 +7,13 @@ import type { IEngine } from "../engine/app";
 import { CGoalPanel } from "./components/goal/panel";
 import { CBoard } from "./components/board";
 import { CTray } from "./components/tray";
-import { CCell, CCELL_HEIGHT, CCELL_WIDTH } from "./components/cell";
-import { CPiece, EFlowerType } from "./components/piece";
-import { CellId, cellIdFromXY } from "./id";
-import { loadSaveState } from "./state";
+import { CCELL_HEIGHT, CCELL_WIDTH } from "./components/cell";
+import { createInitialState } from "./model/rules";
+import { fromSnapshot, toSnapshot } from "./model/serialize";
+import { CGameStore } from "./model/store";
+import type { TGameState } from "./model/types";
+import { loadSaveState, saveSaveState } from "./state";
 import type { AssetKey } from "../assetpack/assets";
-
-type TLevel = TConfig["levels"][number];
 
 /** Art every level needs regardless of its piece set. */
 const STATIC_ASSET_KEYS: readonly AssetKey[] = [
@@ -29,15 +28,13 @@ const STATIC_ASSET_KEYS: readonly AssetKey[] = [
   "Baloo2-Regular",
 ];
 
-interface IGameState {
-  level: number; // current level index
-  moves: number; // move counter shown in the HUD
-  goals: { type: AssetKey; target: number; progress: number }[];
-  board: Map<CellId, CPiece | null>; // board model — what is placed where
-}
-
+/**
+ * Wires input to the store and the store to the views. It keeps no game data
+ * of its own: `store.state` is the single source of truth, and every view
+ * redraws from it on change.
+ */
 export class CGameController extends CContainer {
-  private state!: IGameState;
+  private store!: CGameStore;
   private panel!: CGoalPanel;
   private board!: CBoard;
   private tray!: CTray;
@@ -68,8 +65,9 @@ export class CGameController extends CContainer {
       progressBar,
     );
 
+    const save = loadSaveState();
     // Clamp so a stale save (level index beyond the shipped levels) can't crash.
-    const currentLevel = loadSaveState().level % config.levels.length;
+    const currentLevel = save.level % config.levels.length;
     const level = config.levels[currentLevel];
 
     // Load only what this level needs; the atlas library is far too large to
@@ -87,52 +85,48 @@ export class CGameController extends CContainer {
     // Destroy after the await: onProgress may never fire for cached loads.
     progressBar.destroy();
 
-    this.createGameContainer(currentLevel, level);
+    // A save that doesn't fit the level as it ships today is discarded rather
+    // than patched up, so a level edit can never resurrect a broken board.
+    const restored = fromSnapshot(save, currentLevel, level);
+    this.createGameContainer(
+      restored ?? createInitialState(currentLevel, level),
+    );
   }
 
-  private createGameContainer(currentLevel: number, level: TLevel) {
+  private createGameContainer(state: TGameState) {
     const app = this.engine.app;
     onResize(app, (w, h) => this.onResize(w, h), this.container);
 
-    const columns = level.columns;
-    const rows = level.data.length / columns;
+    this.store = new CGameStore(state);
 
-    const board = new Map<CellId, CPiece | null>();
-    for (let x = 0; x < columns; x++) {
-      for (let y = 0; y < rows; y++) {
-        board.set(cellIdFromXY(x, y), null);
-      }
-    }
-
-    this.state = {
-      level: currentLevel,
-      moves: 0,
-      goals: level.goals.map((goal) => ({
-        type: goal.type,
-        target: goal.count,
-        progress: 0,
-      })),
-      board,
-    };
-
-    this.panel = new CGoalPanel({
-      goals: level.goals,
-      level: currentLevel + 1,
-    });
+    this.panel = new CGoalPanel(state);
     this.container.addChild(this.panel.container);
 
-    this.board = new CBoard({ rows, columns });
-    this.board.on("board:cellClicked", ({ cell }) =>
-      this.handleCellClicked(cell),
-    );
+    this.board = new CBoard(state);
+    this.board.on("board:cellClicked", ({ x, y }) => this.store.place(x, y));
     this.container.addChild(this.board.container);
 
-    this.tray = new CTray({ pieces: level.pieces });
+    this.tray = new CTray();
     this.container.addChild(this.tray.container);
 
-    this.layout(rows, columns);
+    this.store.subscribe((next) => {
+      this.render(next);
+      saveSaveState(toSnapshot(next));
+    });
+    this.render(state);
+    // Persist the opening position too, so a reload before the first move
+    // resumes the same tray rather than rerolling it.
+    saveSaveState(toSnapshot(state));
+
+    this.layout(state.rows, state.columns);
 
     app.stage.addChild(this.container);
+  }
+
+  private render(state: TGameState) {
+    this.panel.render(state);
+    this.board.render(state);
+    this.tray.render(state);
   }
 
   // Pin the goal panel to the top and the tray to the bottom, then scale the
@@ -169,68 +163,6 @@ export class CGameController extends CContainer {
       config.width * 0.5,
       (boxTop + boxBottom) * 0.5,
     );
-  }
-
-  private handleCellClicked(cell: CCell) {
-    const { x, y } = cell.data;
-    if (this.state.board.get(cellIdFromXY(x, y))) {
-      return; // cell already occupied
-    }
-
-    const flower = this.tray.pop();
-    this.placeFlower(flower, x, y);
-    this.tray.refill();
-  }
-
-  private placeFlower(flower: CPiece, x: number, y: number) {
-    this.state.board.set(cellIdFromXY(x, y), flower);
-    this.board.addFlowerView({ flower, x, y });
-
-    const neighbors = this.getNeighbors(x, y);
-    if (neighbors.length > 0) {
-      flower.type = EFlowerType.SUPPLY;
-
-      const targetFlower = neighbors.reduce((a, b) =>
-        a.currentValue > b.currentValue ? a : b,
-      );
-      targetFlower.currentValue -= flower.currentValue;
-    }
-
-    this.state.moves += 1;
-    this.advanceGoals(flower);
-    this.updatePanel();
-  }
-
-  // A placement advances every goal whose type matches the art of the flower
-  // just placed, by one, regardless of whether it landed as a bloom or a
-  // supply — the goal panel shows a flower and a count, so "place that many of
-  // this flower" is what the player reads off it. Clamped at the target so an
-  // already-complete goal cannot overshoot and drive the remaining count
-  // negative.
-  private advanceGoals(flower: CPiece) {
-    for (const goal of this.state.goals) {
-      if (goal.type !== flower.assetKey) continue;
-      goal.progress = Math.min(goal.target, goal.progress + 1);
-    }
-  }
-
-  private getNeighbors(x: number, y: number): CPiece[] {
-    const candidates = [
-      this.state.board.get(cellIdFromXY(x + 1, y)),
-      this.state.board.get(cellIdFromXY(x, y + 1)),
-      this.state.board.get(cellIdFromXY(x - 1, y)),
-      this.state.board.get(cellIdFromXY(x, y - 1)),
-    ];
-    return candidates.filter((c): c is CPiece => c != null);
-  }
-
-  private updatePanel() {
-    this.panel.updateMoves(this.state.moves);
-    this.state.goals.forEach((goal, index) => {
-      const remaining = Math.max(0, goal.target - goal.progress);
-      this.panel.updateGoal(index, remaining);
-      this.panel.setGoalComplete(index, goal.progress >= goal.target);
-    });
   }
 
   private onResize(w: number, h: number) {
