@@ -2,7 +2,7 @@ import { CCell, CCELL_HEIGHT, CCELL_WIDTH } from "./cell";
 import { CPiece } from "./piece";
 import { syncPieceViews, type TPiecePlacement } from "./pieces";
 import { CContainer, type TNone } from "../../engine/container";
-import { cellIdFromXY } from "../id";
+import { cellIdFromXY, type CellId } from "../id";
 import type { TGameState } from "../model/types";
 
 export type TBoardEvents = {
@@ -16,6 +16,7 @@ export type TBoardEvents = {
 export class CBoard extends CContainer<TNone, TBoardEvents> {
   private readonly rows: number;
   private readonly columns: number;
+  private readonly playable: ReadonlySet<CellId>;
   private readonly pieces = new Map<number, CPiece>();
 
   constructor(state: TGameState) {
@@ -23,6 +24,9 @@ export class CBoard extends CContainer<TNone, TBoardEvents> {
 
     this.rows = state.rows;
     this.columns = state.columns;
+    // Fixed once, at construction: placement only ever writes to a cell that
+    // already passed canPlace, so the board's key set never changes in play.
+    this.playable = new Set(state.board.keys());
     this.createCells();
   }
 
@@ -41,6 +45,9 @@ export class CBoard extends CContainer<TNone, TBoardEvents> {
   private createCells() {
     for (let x = 0; x < this.columns; x++) {
       for (let y = 0; y < this.rows; y++) {
+        // A hole keeps its slot in the grid but grows no soil and takes no tap.
+        if (!this.playable.has(cellIdFromXY(x, y))) continue;
+
         const cell = new CCell({ x, y });
         this.container.addChild(cell.container);
         cell.container.position.copyFrom(this.positionOf(x, y));

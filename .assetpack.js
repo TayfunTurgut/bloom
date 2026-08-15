@@ -1,4 +1,3 @@
-// .assetpack.js
 import { pixiPipes } from "@assetpack/core/pixi";
 import { atlas } from "./src/assetpack/atlas.js";
 import { spriteSheet } from "./src/assetpack/spriteSheet.js";

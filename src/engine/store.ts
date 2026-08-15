@@ -31,7 +31,14 @@ export class CStore<TState> {
     };
   }
 
-  /** Copy the set first: a listener may unsubscribe while we are iterating. */
+  /**
+   * Iterating a snapshot rather than the live set fixes the audience for a
+   * notification at the moment it starts: a listener that unsubscribes partway
+   * through still receives this one, and a listener that subscribes partway
+   * through waits for the next. Not a guard against mutating a `Set` mid-loop —
+   * that is already safe — but a guarantee that one change reaches one
+   * consistent set of views.
+   */
   protected notify() {
     for (const listener of [...this.listeners]) {
       listener(this._state);

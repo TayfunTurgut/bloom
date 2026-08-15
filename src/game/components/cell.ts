@@ -3,6 +3,8 @@ import { cellIdFromXY } from "../id";
 import { getAsset } from "../assets";
 import { CContainer } from "../../engine/container";
 
+// Design-space units, not pixels: the board is laid out at this size and the
+// controller then scales the whole container to whatever screen it got.
 export const CCELL_WIDTH = 100;
 export const CCELL_HEIGHT = 100;
 

@@ -37,8 +37,8 @@ jobs:
       - name: Check formatting
         run: pnpm format:check
 
-      # Model-only unit tests: no pixi, no assets, so they run before the
-      # build and fail fast.
+      # Unit tests for the pure layers: no pixi, no assets, so they run before
+      # the build and fail fast.
       - name: Test
         run: pnpm test
 

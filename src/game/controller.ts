@@ -66,7 +66,9 @@ export class CGameController extends CContainer {
     );
 
     const save = loadSaveState();
-    // Clamp so a stale save (level index beyond the shipped levels) can't crash.
+    // Wrap rather than clamp: a save pointing past the shipped levels still
+    // lands on a real index, and fromSnapshot's own level check then rejects
+    // it, so the player gets a fresh game rather than an out-of-range read.
     const currentLevel = save.level % config.levels.length;
     const level = config.levels[currentLevel];
 
