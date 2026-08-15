@@ -46,7 +46,9 @@ export class CPiece extends CContainer<{
     this.addNamedChild("value", text);
   }
 
-  /** Pulls display state back in line with `piece`. */
+  /** Only the value can change under a piece already on screen: its art and
+   *  bloom/supply state are fixed at construction, because a piece that moves
+   *  between tray and board is destroyed and rebuilt — see pieces.ts. */
   sync(piece: TPiece) {
     if (piece.currentValue === this.drawnValue) return;
     this.drawnValue = piece.currentValue;

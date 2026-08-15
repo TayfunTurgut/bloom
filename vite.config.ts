@@ -36,8 +36,8 @@ export default defineConfig({
     host: true,
   },
   plugins: [assetpackWatch()],
-  // Only the model is tested, and it imports neither pixi nor the DOM, so the
-  // node environment is enough — no jsdom, no asset pipeline.
+  // Everything under test is pure — no pixi, no DOM, no asset pipeline — and
+  // the one suite that wants localStorage stubs it, so node is enough (no jsdom).
   test: {
     environment: "node",
     include: ["src/**/*.test.ts"],

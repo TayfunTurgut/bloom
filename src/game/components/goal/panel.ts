@@ -7,6 +7,11 @@ import { COLOR_FONT_FILL_BROWN } from "../../colors";
 import config from "../../config";
 import type { TGameState, TGoal } from "../../model/types";
 
+// Slot centres as a fraction of the panel width, spaced so the inner pair
+// clears the move counter in the middle. The length of this list is the real
+// cap on how many goals can be drawn, which is what config/schema.ts bounds
+// `goals` at four to respect — a fifth would index off the end and position
+// the item to NaN.
 const ITEM_X_OFFSETS = [-0.35, -0.185, 0.185, 0.35];
 
 export class CGoalPanel extends CContainer<

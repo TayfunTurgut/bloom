@@ -32,9 +32,10 @@ skipping AssetPack and the bundle. `pnpm install` points `core.hooksPath` at
 misformatted, fails lint, fails to typecheck or breaks a test is rejected.
 Bypass a single commit with `git commit --no-verify`.
 
-`pnpm test` (vitest) covers `src/game/model/` only. Those tests need neither a
-browser nor the art pipeline, so they run in the node environment in well under
-a second.
+`pnpm test` (vitest) covers the pure layers: `src/game/model/`, the level schema
+in `src/game/config/`, and the engine's store and storage helpers. None of them
+need a browser or the art pipeline — the one suite that wants `localStorage`
+stubs it — so they run in the node environment in well under a second.
 
 The hook checks the whole project, not just staged files: tsc and eslint are
 project-wide by nature. It deliberately does not run AssetPack, so if you change

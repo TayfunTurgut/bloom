@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createInitialState, placeFromTray, type TLevel } from "./rules";
 import { fromSnapshot, toSnapshot } from "./serialize";
 import { emptySaveState, saveStateSchema } from "../state/schema";
+import { cellIdFromXY } from "../id";
 
 const APPLE = "apple_half/happy";
 const CARROT = "carrot/happy";
@@ -11,6 +12,15 @@ const level: TLevel = {
   columns: 3,
   goals: [{ type: APPLE, count: 2 }],
   pieces: [APPLE, CARROT],
+};
+
+/** The same 3x3 board with the centre cell — index 4, where `played` puts its
+ *  first flower — cut out. */
+const holedLevel: TLevel = {
+  ...level,
+  data: level.data.map((cell, index) =>
+    index === 4 ? { type: "EMPTY" as const } : cell,
+  ),
 };
 
 const played = () => {
@@ -23,6 +33,17 @@ const played = () => {
 describe("toSnapshot", () => {
   it("writes what the save schema accepts", () => {
     expect(saveStateSchema.safeParse(toSnapshot(played())).success).toBe(true);
+  });
+
+  it("accepts a flower that a drain took below zero", () => {
+    const state = played();
+    const drained = [...state.board.values()].find((piece) => piece !== null);
+    drained!.currentValue = -11;
+
+    // state/schema.ts leaves currentValue unbounded on purpose. Bounding it at
+    // zero would make every save after a deep drain fail to write — silently,
+    // on a device, with the player's progress as the cost.
+    expect(saveStateSchema.safeParse(toSnapshot(state)).success).toBe(true);
   });
 
   it("writes one board entry per cell, row-major", () => {
@@ -98,6 +119,27 @@ describe("fromSnapshot", () => {
       (piece) => piece!.id,
     );
     expect(restored!.nextPieceId).toBeGreaterThan(Math.max(...ids));
+  });
+});
+
+describe("a level with holes", () => {
+  it("round-trips a game played around them", () => {
+    const state = createInitialState(0, holedLevel, 999);
+    placeFromTray(state, 0, 0);
+    placeFromTray(state, 2, 2);
+
+    const restored = fromSnapshot(toSnapshot(state), 0, holedLevel);
+
+    expect(restored).not.toBeNull();
+    expect(restored!.board.has(cellIdFromXY(1, 1))).toBe(false);
+    expect(toSnapshot(restored!)).toEqual(toSnapshot(state));
+  });
+
+  it("rejects a save holding a flower where the level now has a hole", () => {
+    const snapshot = toSnapshot(played());
+    expect(snapshot.board[4]).not.toBeNull();
+
+    expect(fromSnapshot(snapshot, 0, holedLevel)).toBeNull();
   });
 });
 

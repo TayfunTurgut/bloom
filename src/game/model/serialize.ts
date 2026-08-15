@@ -11,7 +11,9 @@ import type { TGameState, TPiece } from "./types";
 export const toSnapshot = (state: TGameState): TSaveState => {
   const board: (TPieceSnapshot | null)[] = [];
   // Written by explicit row-major loop rather than map iteration, so the order
-  // never depends on how the board happened to be built.
+  // never depends on how the board happened to be built. A hole and a bare cell
+  // both write null: the snapshot carries no board shape of its own, because
+  // fromSnapshot reads that back off the level.
   for (let y = 0; y < state.rows; y++) {
     for (let x = 0; x < state.columns; x++) {
       board.push(state.board.get(cellIdFromXY(x, y)) ?? null);
@@ -68,10 +70,16 @@ export const fromSnapshot = (
   if (!pieces.every((piece) => pool.has(piece.assetKey))) return null;
 
   const board = new Map<CellId, TPiece | null>();
-  let index = 0;
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < columns; x++) {
-      board.set(cellIdFromXY(x, y), copyPiece(snapshot.board[index++]));
+      const index = y * columns + x;
+      if (level.data[index].type === "EMPTY") {
+        // A piece parked where the level now has a hole means the save predates
+        // the edit, so it goes the same way as any other stale save.
+        if (snapshot.board[index] !== null) return null;
+        continue;
+      }
+      board.set(cellIdFromXY(x, y), copyPiece(snapshot.board[index]));
     }
   }
 
@@ -83,8 +91,10 @@ export const fromSnapshot = (
     columns,
     pieces: level.pieces,
     rng: snapshot.rng,
-    // Guard against a doctored save handing two live pieces the same id, which
-    // would collide in the views' keyed lookups.
+    // Carries the counter past every id already in play, so a save claiming a
+    // lower one can't have the next drawn flower collide with a restored one in
+    // the views' keyed lookups. Ids duplicated inside the save itself stay
+    // duplicated — this settles the future, not the past.
     nextPieceId: pieces.reduce(
       (max, piece) => Math.max(max, piece.id + 1),
       snapshot.nextPieceId,

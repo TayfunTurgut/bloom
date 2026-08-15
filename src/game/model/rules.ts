@@ -6,6 +6,9 @@ import type { TGameState, TGoal, TPiece } from "./types";
 export type TLevel = TConfig["levels"][number];
 
 export const TRAY_SIZE = 3;
+// Balance knobs for the number printed on a drawn flower. The max doubles as
+// the bound on how far one placement can drive a neighbour negative, which is
+// why the save schema leaves currentValue unbounded.
 export const PIECE_VALUE_MIN = 1;
 export const PIECE_VALUE_MAX = 12;
 
@@ -21,6 +24,10 @@ export const createInitialState = (
   const board = new Map<CellId, TPiece | null>();
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < columns; x++) {
+      // A hole is left out of the map rather than marked in it. canPlace
+      // already tests `has` and neighborsOf already drops nullish lookups, so
+      // absence is all it takes to make a hole unplayable and un-adjacent.
+      if (level.data[y * columns + x].type === "EMPTY") continue;
       board.set(cellIdFromXY(x, y), null);
     }
   }
@@ -113,6 +120,10 @@ const createPiece = (state: TGameState): TPiece => {
   };
 };
 
+// Order is load-bearing, not cosmetic: placeFromTray picks the drain target
+// with a `>` reduce, which keeps the later of two equal values, so a tie
+// resolves to whichever cell is last here — today, the one above. Reordering
+// this list changes which flower drains.
 const neighborsOf = (state: TGameState, x: number, y: number): TPiece[] => {
   const candidates = [
     state.board.get(cellIdFromXY(x + 1, y)),

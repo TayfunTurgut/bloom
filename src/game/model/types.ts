@@ -45,7 +45,9 @@ export type TGameState = {
   rng: number;
   nextPieceId: number;
   goals: TGoal[];
-  /** Every cell of the level, occupied or not. */
+  /** The playable cells, occupied or not. Cells the level marks EMPTY are
+   *  absent rather than null — which is why `canPlace` tests `has` before it
+   *  reads the value: a missing key is a hole, a null value is bare soil. */
   board: Map<CellId, TPiece | null>;
   /** Left to right as drawn: index 0 is the newest arrival, the last entry is
    *  the one the next placement takes. */
