@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A newer push to the same branch supersedes an in-flight run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build web + verify native sync
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # pnpm must exist before setup-node so its cache resolver can find the store.
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check formatting
+        run: pnpm format:check
+
+      # assetpack -> eslint -> tsc -> vite build. The order is load-bearing:
+      # assetpack regenerates src/assetpack/assets.d.ts, which lint and tsc read.
+      - name: Build
+        run: pnpm build
+
+      # assets.d.ts is generated but committed, so a stale copy would let the
+      # build pass locally while lint/tsc check the wrong asset key union.
+      - name: Verify generated asset types are committed
+        run: |
+          if ! git diff --exit-code -- src/assetpack/assets.d.ts; then
+            echo "::error file=src/assetpack/assets.d.ts::Out of date. Run 'pnpm assetpack' and commit the result."
+            exit 1
+          fi
+
+      # Catches capacitor.config.ts / plugin drift without needing macOS.
+      - name: Sync native project
+        run: pnpm exec cap sync ios
+
+      # Package.swift hardcodes pnpm's versioned node_modules/.pnpm paths, so a
+      # dependency bump silently invalidates the committed copy and Xcode fails
+      # to resolve SPM on a machine that has not re-run `cap sync`.
+      - name: Verify native package manifest is committed
+        run: |
+          if ! git diff --exit-code -- ios/App/CapApp-SPM/Package.swift; then
+            echo "::error file=ios/App/CapApp-SPM/Package.swift::Out of date. Run 'pnpm ios:sync' and commit the result."
+            exit 1
+          fi
+
+      # dist/ is a fully static, relative-base bundle: same artifact serves the
+      # web build and the iOS payload.
+      - name: Upload web build
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+          retention-days: 7
