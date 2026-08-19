@@ -107,9 +107,6 @@ export class CLeafCounter extends CContainer<{
     ease: TEase,
     onUpdate: (t: number) => void,
   ): Promise<void> {
-    return new Promise((resolve) => {
-      const controls = tween(0, 1, { duration, ease, onUpdate });
-      this.animations.track(controls, resolve);
-    });
+    return this.animations.wait(tween(0, 1, { duration, ease, onUpdate }));
   }
 }

@@ -7,12 +7,12 @@ import { CContainer } from "../engine/container";
 import type { IEngine } from "../engine/app";
 import { CGoalPanel } from "./components/goal/panel";
 import { CBoard } from "./components/board";
-import { CEffects } from "./components/fx";
+import { CEffects, EFFECT_STAGGER } from "./components/fx";
 import { CTray } from "./components/tray";
 import { CLeafCounter } from "./components/leaf";
 import { CLevelEndOverlay } from "./components/win";
 import { createBackground } from "./components/background";
-import { bindAnimationsTo } from "./components/motion";
+import { bindAnimationsTo, CAnimations } from "./components/motion";
 import { CCELL_HEIGHT, CCELL_WIDTH } from "./components/cell";
 import { fromSnapshot, toSnapshot } from "./model/serialize";
 import { CGameStore } from "./model/store";
@@ -39,7 +39,7 @@ const STATIC_ASSET_KEYS: readonly AssetKey[] = [
 ];
 
 const WRAP_BONUS_LEAVES = 50;
-const LEVEL_END_DELAY_MS = 800;
+const LEVEL_END_BEAT = 0.3;
 
 export class CGameController extends CContainer {
   private store!: CGameStore;
@@ -52,6 +52,8 @@ export class CGameController extends CContainer {
   private overlay: CLevelEndOverlay | null = null;
   private unsubscribe: (() => void) | null = null;
   private profile = loadProfile();
+  private generation = 0;
+  private readonly animations = new CAnimations();
 
   constructor(private readonly engine: IEngine<AssetKey>) {
     super();
@@ -126,9 +128,20 @@ export class CGameController extends CContainer {
     this.effects = new CEffects(this.board.effectContainer, overlayFx);
 
     this.unsubscribe = this.store.subscribe((next, report) => {
-      this.render(next, report);
       saveSaveState(toSnapshot(next));
-      if (report) this.handleEffects(next, report);
+      if (!report) {
+        this.render(next);
+        return;
+      }
+      if (report.effects.some((effect) => effect.type === "PIECE_PLACED")) {
+        void this.presentMove(next, report);
+        return;
+      }
+      this.render(next);
+      for (const effect of report.effects) {
+        if (effect.type === "TRAY_SWAPPED")
+          this.tray.playSwap(effect.a, effect.b);
+      }
     });
     this.render(state);
     saveSaveState(toSnapshot(state));
@@ -149,6 +162,8 @@ export class CGameController extends CContainer {
   }
 
   private endLevel() {
+    this.generation += 1;
+    this.animations.stopAll();
     this.unsubscribe?.();
     this.unsubscribe = null;
     this.overlay?.destroy();
@@ -159,50 +174,98 @@ export class CGameController extends CContainer {
     this.levelContainer.destroy({ children: true });
   }
 
-  private render(state: TGameState, report?: TMoveReport) {
+  private render(state: TGameState) {
     this.panel.render(state);
     this.board.render(state);
     this.tray.render(state);
-    if (report) {
-      this.effects.play(report, (cell) => this.board.positionOfCell(cell));
-    }
   }
 
-  private handleEffects(state: TGameState, report: TMoveReport) {
+  private async presentMove(state: TGameState, report: TMoveReport) {
+    const generation = this.generation;
+    this.lockInput();
+    this.tray.render(state);
     for (const effect of report.effects) {
-      if (effect.type === "MILESTONE_REACHED") {
-        this.profile = { ...this.profile, leaves: this.profile.leaves + 1 };
-        saveProfile(this.profile);
-        const from = this.container.toLocal(
-          this.panel.pipGlobalPosition(effect.index),
-        );
-        this.leafCounter.award(this.profile.leaves, from);
-      } else if (effect.type === "TRAY_SWAPPED") {
-        this.tray.playSwap(effect.a, effect.b);
-      } else if (effect.type === "LEVEL_WON") {
-        this.lockInput();
-        this.scheduleLevelEnd(true, effect.milestones);
-      } else if (effect.type === "LEVEL_FAILED") {
-        this.lockInput();
-        this.scheduleLevelEnd(false, milestonesReached(state));
+      if (effect.type === "PIECE_PLACED") {
+        this.board.applyPlacement(state, effect.cell);
       }
     }
+
+    const fed = report.effects.find((effect) => effect.type === "FED");
+    if (fed) {
+      const from = this.board.positionOfCell(fed.from);
+      const to = this.board.positionOfCell(fed.to);
+      if (from && to) {
+        await this.effects.feed(fed.assetKey, fed.amount, from, to);
+        if (generation !== this.generation) return;
+      }
+      this.board.showFedValue(fed.targetId, fed.remaining);
+    }
+
+    const harvested = report.effects.filter(
+      (effect) => effect.type === "HARVESTED",
+    );
+    if (harvested.length > 0) {
+      const waits: Promise<void>[] = [];
+      harvested.forEach((effect, index) => {
+        const at = this.board.positionOfCell(effect.cell);
+        if (!at) {
+          this.board.removePiece(effect.pieceId);
+          return;
+        }
+        const delay = index * EFFECT_STAGGER;
+        waits.push(
+          this.effects.vanish(at, delay, () =>
+            this.board.removePiece(effect.pieceId),
+          ),
+        );
+        if (effect.crop !== "GROWING") return;
+        const goal = this.panel.goalGlobalPosition(effect.assetKey);
+        if (goal) this.effects.flyToGoal(effect.assetKey, at, goal, delay);
+        else this.effects.rain(effect.assetKey, at, delay);
+      });
+      await Promise.all(waits);
+      if (generation !== this.generation) return;
+    }
+
+    this.panel.render(state);
+    for (const effect of report.effects) {
+      if (effect.type === "MILESTONE_REACHED") this.awardLeaf(effect.index);
+    }
+    this.board.render(state);
+
+    const won = report.effects.find((effect) => effect.type === "LEVEL_WON");
+    const failed = report.effects.some(
+      (effect) => effect.type === "LEVEL_FAILED",
+    );
+    if (!won && !failed) {
+      this.unlockInput();
+      return;
+    }
+    await this.animations.delay(LEVEL_END_BEAT);
+    if (generation !== this.generation) return;
+    this.showLevelEnd(!!won, won ? won.milestones : milestonesReached(state));
+  }
+
+  private awardLeaf(index: number) {
+    this.profile = { ...this.profile, leaves: this.profile.leaves + 1 };
+    saveProfile(this.profile);
+    const from = this.container.toLocal(this.panel.pipGlobalPosition(index));
+    this.leafCounter.award(this.profile.leaves, from);
   }
 
   private lockInput() {
-    this.board.container.eventMode = "none";
-    this.tray.container.eventMode = "none";
+    this.board.container.interactiveChildren = false;
+    this.tray.container.interactiveChildren = false;
   }
 
-  private scheduleLevelEnd(won: boolean, milestones: number) {
-    window.setTimeout(
-      () => this.showLevelEnd(won, milestones),
-      LEVEL_END_DELAY_MS,
-    );
+  private unlockInput() {
+    this.board.container.interactiveChildren = true;
+    this.tray.container.interactiveChildren = true;
   }
 
   private showLevelEnd(won: boolean, milestones: number) {
     if (this.overlay) return;
+    this.lockInput();
     const overlay = new CLevelEndOverlay(won, milestones);
     this.overlay = overlay;
     this.levelContainer.addChild(overlay.container);

@@ -1,6 +1,6 @@
 import { Container } from "pixi.js";
 import { CCell, CCELL_HEIGHT, CCELL_WIDTH } from "./cell";
-import type { CPiece } from "./piece";
+import { CPiece } from "./piece";
 import { syncPieceViews, type TPiecePlacement } from "./pieces";
 import { CContainer, type TNone } from "../../engine/container";
 import { cellIdFromXY, xyFromCellId, type CellId } from "../id";
@@ -52,6 +52,31 @@ export class CBoard extends CContainer<TNone, TBoardEvents> {
     if (!this.playable.has(cellId)) return null;
     const { x, y } = xyFromCellId(cellId);
     return this.positionOf(x, y);
+  }
+
+  applyPlacement(state: TGameState, cellId: CellId) {
+    const piece = state.board.get(cellId)?.piece;
+    const at = this.positionOfCell(cellId);
+    if (!piece || !at) return;
+    let view = this.pieces.get(piece.id);
+    if (!view) {
+      view = new CPiece(piece);
+      this.pieces.set(piece.id, view);
+    }
+    this.pieceContainer.addChild(view.container);
+    view.container.position.set(at.x, at.y);
+    view.sync(piece);
+  }
+
+  showFedValue(pieceId: number, value: number) {
+    this.pieces.get(pieceId)?.showValue(value);
+  }
+
+  removePiece(pieceId: number) {
+    const view = this.pieces.get(pieceId);
+    if (!view) return;
+    view.destroy();
+    this.pieces.delete(pieceId);
   }
 
   destroy() {

@@ -1,8 +1,9 @@
-import { Sprite, Text, Texture } from "pixi.js";
+import { Sprite, Text, Texture, type PointData } from "pixi.js";
 import { CContainer } from "../../../engine/container";
 import { COLOR_FONT_FILL_LIGHT, COLOR_FONT_STROKE_GRAY } from "../../colors";
 import { getAsset } from "../../assets";
 import { goalRemaining, isGoalComplete } from "../../model/rules";
+import type { AssetKey } from "../../../assetpack/assets";
 import type { TGoal } from "../../model/types";
 
 export class CGoalItem extends CContainer<{
@@ -11,9 +12,12 @@ export class CGoalItem extends CContainer<{
   goalText: Text;
   tickMark: Sprite;
 }> {
+  readonly type: AssetKey;
+
   constructor(goal: TGoal) {
     super();
 
+    this.type = goal.type;
     this.createBackground();
     this.createGoalText(goal);
     this.createTickMark();
@@ -23,6 +27,10 @@ export class CGoalItem extends CContainer<{
   render(goal: TGoal) {
     this.getChildByLabel("goalText").text = goalRemaining(goal);
     this.getChildByLabel("tickMark").visible = isGoalComplete(goal);
+  }
+
+  globalPosition(): PointData {
+    return this.getChildByLabel("goalImage").getGlobalPosition();
   }
 
   private createBackground() {

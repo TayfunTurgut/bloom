@@ -5,6 +5,7 @@ import { CGoalHud } from "./hud";
 import { getAsset } from "../../assets";
 import { COLOR_FONT_FILL_BROWN } from "../../colors";
 import config from "../../config";
+import type { AssetKey } from "../../../assetpack/assets";
 import type { TGameState, TGoal } from "../../model/types";
 
 const ITEM_X_OFFSETS = [-0.35, -0.185, 0.185, 0.35];
@@ -35,6 +36,11 @@ export class CGoalPanel extends CContainer<
 
   pipGlobalPosition(index: number) {
     return this.hud.pipGlobalPosition(index);
+  }
+
+  goalGlobalPosition(type: AssetKey) {
+    const item = this.items.find((candidate) => candidate.type === type);
+    return item ? item.globalPosition() : null;
   }
 
   private createBackground() {

@@ -4,16 +4,15 @@ import {
   ParticleContainer,
   Sprite,
   Texture,
+  type PointData,
 } from "pixi.js";
 import { getAsset } from "../assets";
 import { CCELL_WIDTH } from "./cell";
 import { CAnimations, tween } from "./motion";
 import config from "../config";
 import type { AssetKey } from "../../assetpack/assets";
-import type { CellId } from "../id";
-import type { TMoveReport } from "../model/types";
 
-const EFFECT_STAGGER = 0.08;
+export const EFFECT_STAGGER = 0.08;
 const DRAIN_STAGGER = 0.05;
 const DRAIN_DURATION = 0.45;
 const DRAIN_SIZE = CCELL_WIDTH * 0.34;
@@ -23,6 +22,8 @@ const VANISH_SIZE = CCELL_WIDTH * 1.15;
 const RAIN_PARTICLES = 24;
 const RAIN_SIZE = CCELL_WIDTH * 0.42;
 const RAIN_DURATION = 1.5;
+const GOAL_PARTICLES = 10;
+const GOAL_FLIGHT_DURATION = 0.55;
 
 const VANISH_KEYS: readonly AssetKey[] = [
   "vanish0",
@@ -45,25 +46,6 @@ export class CEffects {
     private readonly overlayFx: Container,
   ) {}
 
-  play(report: TMoveReport, positionOf: (cell: CellId) => TPoint | null) {
-    let index = 0;
-    for (const effect of report.effects) {
-      if (effect.type === "FED") {
-        const from = positionOf(effect.from);
-        const to = positionOf(effect.to);
-        if (from && to) this.feed(effect.assetKey, effect.amount, from, to);
-        continue;
-      }
-      if (effect.type !== "HARVESTED") continue;
-      const at = positionOf(effect.cell);
-      if (!at) continue;
-      const delay = index * EFFECT_STAGGER;
-      index += 1;
-      this.vanish(at, delay);
-      if (effect.crop === "GROWING") this.rain(effect.assetKey, at, delay);
-    }
-  }
-
   destroy() {
     this.animations.stopAll();
     for (const emitter of this.emitters.values()) {
@@ -72,9 +54,15 @@ export class CEffects {
     this.emitters.clear();
   }
 
-  private feed(assetKey: AssetKey, amount: number, from: TPoint, to: TPoint) {
+  async feed(
+    assetKey: AssetKey,
+    amount: number,
+    from: TPoint,
+    to: TPoint,
+  ): Promise<void> {
     const texture = getAsset<Texture>(assetKey);
     const scale = DRAIN_SIZE / Math.max(texture.width, texture.height);
+    const waits: Promise<void>[] = [];
     for (let index = 0; index < amount; index++) {
       const sprite = new Sprite(texture);
       sprite.anchor.set(0.5);
@@ -100,11 +88,12 @@ export class CEffects {
           sprite.alpha = t < 0.8 ? 1 : 1 - (t - 0.8) * 5;
         },
       });
-      this.animations.track(controls, () => sprite.destroy());
+      waits.push(this.animations.wait(controls, () => sprite.destroy()));
     }
+    await Promise.all(waits);
   }
 
-  private vanish(at: TPoint, delay: number) {
+  vanish(at: TPoint, delay: number, onStart?: () => void): Promise<void> {
     const first = getAsset<Texture>(VANISH_KEYS[0]);
     const sprite = new Sprite(first);
     sprite.anchor.set(0.5);
@@ -113,19 +102,72 @@ export class CEffects {
     sprite.visible = false;
     this.boardFx.addChild(sprite);
 
+    let started = false;
     const controls = tween(0, VANISH_KEYS.length - 1, {
       duration: VANISH_DURATION,
       delay,
       ease: "linear",
       onUpdate: (frame) => {
+        if (!started) {
+          started = true;
+          onStart?.();
+        }
         sprite.visible = true;
         sprite.texture = getAsset<Texture>(VANISH_KEYS[Math.round(frame)]);
       },
     });
-    this.animations.track(controls, () => sprite.destroy());
+    return this.animations.wait(controls, () => sprite.destroy());
   }
 
-  private rain(assetKey: AssetKey, at: TPoint, delay: number) {
+  flyToGoal(assetKey: AssetKey, at: TPoint, target: PointData, delay: number) {
+    const texture = getAsset<Texture>(assetKey);
+    const emitter = this.emitterFor(assetKey);
+    const origin = this.overlayFx.toLocal(at, this.boardFx);
+    const goal = this.overlayFx.toLocal(target);
+    const scale = RAIN_SIZE / Math.max(texture.width, texture.height);
+
+    for (let index = 0; index < GOAL_PARTICLES; index++) {
+      const particle = new Particle({
+        texture,
+        x: origin.x,
+        y: origin.y,
+        anchorX: 0.5,
+        anchorY: 0.5,
+        scaleX: scale,
+        scaleY: scale,
+        rotation: Math.random() * Math.PI * 2,
+      });
+      emitter.addParticle(particle);
+
+      const angle = Math.random() * Math.PI * 2;
+      const radius = CCELL_WIDTH * (0.25 + Math.random() * 0.35);
+      const burstX = origin.x + Math.cos(angle) * radius;
+      const burstY = origin.y + Math.sin(angle) * radius;
+      const spin = (Math.random() - 0.5) * Math.PI * 2;
+      const startRotation = particle.rotation;
+
+      const controls = tween(0, 1, {
+        duration: GOAL_FLIGHT_DURATION,
+        delay: delay + Math.random() * 0.1,
+        ease: "easeIn",
+        onUpdate: (t) => {
+          const spread = Math.min(1, t * 4);
+          const fromX = origin.x + (burstX - origin.x) * spread;
+          const fromY = origin.y + (burstY - origin.y) * spread;
+          particle.x = fromX + (goal.x - fromX) * t;
+          particle.y = fromY + (goal.y - fromY) * t;
+          particle.rotation = startRotation + spin * t;
+          const shrink = scale * (1 - t * 0.6);
+          particle.scaleX = shrink;
+          particle.scaleY = shrink;
+          particle.alpha = t < 0.85 ? 1 : 1 - (t - 0.85) / 0.15;
+        },
+      });
+      this.animations.track(controls, () => emitter.removeParticle(particle));
+    }
+  }
+
+  rain(assetKey: AssetKey, at: TPoint, delay: number) {
     const texture = getAsset<Texture>(assetKey);
     const emitter = this.emitterFor(assetKey);
     const origin = this.overlayFx.toLocal(at, this.boardFx);

@@ -60,6 +60,19 @@ export class CPiece extends CContainer<{
     this.apply(piece);
   }
 
+  showValue(value: number) {
+    if (value === this.drawnValue) return;
+    this.drawnValue = value;
+    const growth = this.getChildByLabel("growth");
+    growth.visible = this.drawnType === "GROWING" && value > 0;
+    if (growth.visible) {
+      growth.texture = getAsset<Texture>(growthTextureFor(value));
+      growth.setSize(CCELL_WIDTH - CCELL_GAP, CCELL_HEIGHT - CCELL_GAP);
+    }
+    this.getChildByLabel("value").text = value;
+    this.popValue();
+  }
+
   sync(piece: TPiece) {
     const sprouted = piece.type === "GROWING" && this.drawnType !== "GROWING";
     const valueChanged = piece.currentValue !== this.drawnValue;

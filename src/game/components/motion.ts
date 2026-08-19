@@ -42,6 +42,7 @@ export const tween = (
 
 export class CAnimations {
   private readonly running = new Set<TAnimation>();
+  private readonly resolvers = new Set<() => void>();
 
   track(controls: TAnimation, cleanup?: () => void) {
     this.running.add(controls);
@@ -51,8 +52,26 @@ export class CAnimations {
     });
   }
 
+  wait(controls: TAnimation, cleanup?: () => void): Promise<void> {
+    return new Promise((resolve) => {
+      this.running.add(controls);
+      this.resolvers.add(resolve);
+      void controls.then(() => {
+        if (!this.resolvers.delete(resolve)) return;
+        if (this.running.delete(controls)) cleanup?.();
+        resolve();
+      });
+    });
+  }
+
+  delay(duration: number): Promise<void> {
+    return this.wait(tween(0, 1, { duration }));
+  }
+
   stopAll() {
     for (const controls of this.running) controls.stop();
     this.running.clear();
+    for (const resolve of [...this.resolvers]) resolve();
+    this.resolvers.clear();
   }
 }
