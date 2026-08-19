@@ -8,8 +8,6 @@ import { cellIdFromXY } from "../id";
 const APPLE = "apple_half/happy";
 const CARROT = "carrot/happy";
 
-/** TLevel is the schema's *output* type, so a fixture spells out the defaults
- *  the parser would have filled in. */
 const cell = (over: Partial<TLevel["data"][number]> = {}) => ({
   type: "FILLED" as const,
   layers: [],
@@ -23,8 +21,6 @@ const level: TLevel = {
   pieces: [APPLE, CARROT],
 };
 
-/** The same 3x3 board with the centre cell — index 4, where `played` puts its
- *  first flower — cut out. */
 const holedLevel: TLevel = {
   ...level,
   data: level.data.map((entry, index) =>
@@ -32,8 +28,6 @@ const holedLevel: TLevel = {
   ),
 };
 
-/** The same board with a two-hit vine over a carrot at index 8, so a save has
- *  a stack in it and not just flowers. */
 const vinedLevel: TLevel = {
   ...level,
   data: level.data.map((entry, index) =>
@@ -62,15 +56,12 @@ describe("toSnapshot", () => {
       .find((piece) => piece !== null);
     drained!.currentValue = -11;
 
-    // state/schema.ts leaves currentValue unbounded on purpose. Bounding it at
-    // zero would make every save after a deep drain fail to write — silently,
-    // on a device, with the player's progress as the cost.
     expect(saveStateSchema.safeParse(toSnapshot(state)).success).toBe(true);
   });
 
   it("writes one board entry per cell, row-major", () => {
     const state = createInitialState(0, level, 1);
-    placeFromTray(state, 2, 0); // index 2 in row-major order
+    placeFromTray(state, 2, 0);
 
     const snapshot = toSnapshot(state);
     expect(snapshot.board).toHaveLength(9);
@@ -110,7 +101,6 @@ describe("fromSnapshot", () => {
       ...level,
       data: Array.from({ length: 12 }, () => cell()),
     };
-    // Same cell count, different shape — only the columns check catches this.
     const reshaped: TLevel = { ...level, columns: 9 };
 
     expect(fromSnapshot(snapshot, 0, bigger)).toBeNull();
@@ -129,12 +119,12 @@ describe("fromSnapshot", () => {
     const retuned: TLevel = { ...level, goals: [{ type: APPLE, count: 5 }] };
 
     expect(fromSnapshot(snapshot, 0, retuned)).toBeNull();
-    expect(fromSnapshot(snapshot, 1, level)).toBeNull(); // wrong level index
+    expect(fromSnapshot(snapshot, 1, level)).toBeNull();
   });
 
   it("never hands a restored piece an id that is already in play", () => {
     const snapshot = toSnapshot(played());
-    snapshot.nextPieceId = 1; // as a doctored save might claim
+    snapshot.nextPieceId = 1;
 
     const restored = fromSnapshot(snapshot, 0, level);
     const ids = [
@@ -191,20 +181,17 @@ describe("a board carrying layers", () => {
 
   it("keeps a cover the player already chipped, rather than re-authoring it", () => {
     const state = vined();
-    placeFromTray(state, 2, 1); // adjacent to the vine at (2,2): 2 hits -> 1
+    placeFromTray(state, 2, 1);
 
     const restored = fromSnapshot(toSnapshot(state), 0, vinedLevel);
 
-    // The level still authors a two-hit vine. A restored cover legitimately
-    // diverges from that the moment the player chips it, which is why
-    // fromSnapshot deliberately does not cross-check layers against the level.
     const layers = restored!.board.get(cellIdFromXY(2, 2))!.layers;
     expect(layers.at(-1)).toMatchObject({ kind: "VINE", hits: 1, maxHits: 2 });
   });
 
   it("never hands a restored layer an id that is already in play", () => {
     const snapshot = toSnapshot(vined());
-    snapshot.nextLayerId = 1; // as a doctored save might claim
+    snapshot.nextLayerId = 1;
 
     const restored = fromSnapshot(snapshot, 0, vinedLevel);
     const ids = snapshot.board.flat().map((layer) => layer.id);
@@ -224,8 +211,6 @@ describe("a board carrying layers", () => {
 
   it("rejects a cover of a kind the game no longer knows", () => {
     const snapshot = toSnapshot(vined());
-    // Reaching past the type on purpose: this is what a save written by a
-    // build that shipped a kind since removed would look like on disk.
     (snapshot.board[8][1] as { kind: string }).kind = "BRAMBLE";
 
     expect(saveStateSchema.safeParse(snapshot).success).toBe(false);
@@ -240,8 +225,6 @@ describe("an older save file", () => {
   it("rejects a v1 save, whose board was one piece per cell", () => {
     const v1 = { ...toSnapshot(played()), version: 1, board: [null, null] };
 
-    // The version literal alone would catch this; the board shape is checked
-    // too, so a hand-edited version number still cannot get a v1 board in.
     expect(saveStateSchema.safeParse(v1).success).toBe(false);
   });
 });

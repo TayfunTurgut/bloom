@@ -1,21 +1,5 @@
 name: Release (iOS)
 
-# Archives, signs and exports a store-ready .ipa, and optionally uploads it to
-# App Store Connect / TestFlight.
-#
-# Required repository secrets:
-#   APPLE_TEAM_ID                     10-character Apple Developer team ID
-#   APPLE_CERTIFICATE_P12             base64 of the "Apple Distribution" .p12
-#   APPLE_CERTIFICATE_PASSWORD        password used when exporting that .p12
-#   APPLE_PROVISIONING_PROFILE        base64 of the App Store .mobileprovision
-#                                     for com.tayfunturgut.bloom
-# Additionally required for the upload step:
-#   APPSTORE_API_KEY_ID               App Store Connect API key ID
-#   APPSTORE_API_ISSUER_ID            App Store Connect API issuer ID
-#   APPSTORE_API_PRIVATE_KEY          base64 of the AuthKey_<id>.p8
-#
-# To base64 a file: base64 -i cert.p12 | pbcopy
-
 on:
   push:
     tags: ["v*"]
@@ -34,7 +18,6 @@ permissions:
   contents: read
 
 env:
-  # README requires Xcode 26+ (SPM-based Capacitor 8 template).
   XCODE_VERSION: "26"
   BUNDLE_ID: com.tayfunturgut.bloom
   ARCHIVE_PATH: ${{ github.workspace }}/build/App.xcarchive
@@ -69,27 +52,19 @@ jobs:
           node-version: 22
           cache: pnpm
 
-      # package.json is the source of truth for the marketing version; the
-      # committed pbxproj is generated from it by scripts/sync-version.mjs.
       - name: Resolve version and build number
         id: version
         run: |
           set -euo pipefail
           version="$(node -p 'require("./package.json").version')"
-          # A tag disagreeing with package.json means the bump was never
-          # committed; archiving it would ship a version nobody wrote down.
           if [ "${{ github.ref_type }}" = "tag" ] && [ "$GITHUB_REF_NAME" != "v$version" ]; then
             echo "::error::Tag $GITHUB_REF_NAME does not match package.json version $version."
             exit 1
           fi
-          # run_number is monotonic per workflow, so builds never collide in
-          # App Store Connect even when a version is re-archived.
           echo "marketing=$version" >> "$GITHUB_OUTPUT"
           echo "build=${{ github.run_number }}" >> "$GITHUB_OUTPUT"
           echo "Building $version ($GITHUB_RUN_NUMBER)"
 
-      # Must run before xcodebuild: Package.swift resolves the Capacitor plugins
-      # through literal node_modules/.pnpm/... paths, so SPM fails without them.
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -120,13 +95,11 @@ jobs:
           security create-keychain -p "$keychain_password" "$keychain"
           security set-keychain-settings -lut 3600 "$keychain"
           security unlock-keychain -p "$keychain_password" "$keychain"
-          # Keep the login keychain in the search list so system roots resolve.
           security list-keychains -d user -s "$keychain" login.keychain-db
 
           echo "$CERTIFICATE_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
           security import "$RUNNER_TEMP/cert.p12" -k "$keychain" \
             -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
-          # Without this, codesign blocks on a UI prompt that never appears.
           security set-key-partition-list -S apple-tool:,apple: \
             -s -k "$keychain_password" "$keychain" > /dev/null
           rm -f "$RUNNER_TEMP/cert.p12"
@@ -138,7 +111,6 @@ jobs:
           uuid="$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$plist")"
           name="$(/usr/libexec/PlistBuddy -c 'Print :Name' "$plist")"
 
-          # Xcode 16+ reads the Developer path; older tooling reads MobileDevice.
           for dir in \
             "$HOME/Library/MobileDevice/Provisioning Profiles" \
             "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"; do
@@ -151,9 +123,6 @@ jobs:
           echo "profile_name=$name" >> "$GITHUB_OUTPUT"
           echo "Installed profile: $name"
 
-      # MARKETING_VERSION comes from the committed pbxproj, which the check
-      # above proved matches package.json. Only the build number is overridden:
-      # it is CI-derived and has no source of truth in the repo.
       - name: Archive
         env:
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
@@ -209,7 +178,6 @@ jobs:
           path: ${{ env.EXPORT_PATH }}/*.ipa
           retention-days: 30
 
-      # Needed to symbolicate store crash reports; the archive is discarded.
       - name: Upload dSYMs
         uses: actions/upload-artifact@v4
         with:

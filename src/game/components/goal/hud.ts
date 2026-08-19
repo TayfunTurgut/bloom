@@ -19,14 +19,14 @@ export class CGoalHud extends CContainer<{
   }
 
   private createBackground() {
-    const texture = getAsset<Texture>("badges/disc_brown");
+    const texture = getAsset<Texture>("score-movement-bg");
     const sprite = new Sprite({ texture });
     sprite.anchor.set(0.5);
-    sprite.scale.set(0.5);
     this.addNamedChild("background", sprite);
   }
 
   private createMoveCounter() {
+    const background = this.getChildByLabel("background");
     const font = getAsset<FontFace>("Baloo2-Regular");
     const text = new Text({
       text: 0,
@@ -43,6 +43,7 @@ export class CGoalHud extends CContainer<{
     });
     text.anchor.set(0.5);
     text.scale.set(2);
+    text.position.set(0, -background.height * 0.025);
     this.addNamedChild("moveCounter", text);
   }
 }

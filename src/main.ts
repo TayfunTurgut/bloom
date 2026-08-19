@@ -13,7 +13,8 @@ async function main() {
 
   const engine = await createEngine<AssetKey>({
     mount,
-    manifestUrl: "assets/manifest.json",
+    basePath: "assets/",
+    manifestUrl: "manifest.json",
     appOptions: { background: COLOR_BACKGROUND },
   });
   await initPlatform(engine.app);

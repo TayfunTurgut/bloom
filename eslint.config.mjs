@@ -17,8 +17,6 @@ export default defineConfig(
       sourceType: "module",
       parserOptions: {
         projectService: {
-          // Root *.ts configs are covered by tsconfig.json's include now;
-          // only the eslint config itself needs the default project.
           allowDefaultProject: ["*.mjs"],
         },
         tsconfigRootDir: import.meta.dirname,
@@ -26,6 +24,15 @@ export default defineConfig(
     },
     rules: {
       "@typescript-eslint/unbound-method": "off",
+      "no-empty": ["error", { allowEmptyCatch: true }],
+      "@typescript-eslint/explicit-function-return-type": "off",
+      "@typescript-eslint/no-inferrable-types": [
+        "error",
+        {
+          ignoreParameters: false,
+          ignoreProperties: false,
+        },
+      ],
     },
   },
 );

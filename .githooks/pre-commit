@@ -1,13 +1,4 @@
 #!/bin/sh
-# Installed by package.json's `prepare` script, which points core.hooksPath
-# here on every `pnpm install`. Bypass a single commit with `--no-verify`.
-#
-# Checks the whole project rather than just staged files: tsc and eslint are
-# project-wide by nature, and src/ is small enough that this stays quick.
-#
-# Not checked here because it needs a full AssetPack run: whether
-# src/assetpack/assets.d.ts is current for the contents of src/assets/. Run
-# `pnpm assetpack` after changing art; CI verifies it.
 
 set -e
 

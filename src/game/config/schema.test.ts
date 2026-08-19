@@ -16,11 +16,6 @@ const accepts = (level: Partial<TLevelInput>) =>
   configSchema.safeParse(withLevel(level)).success;
 
 describe("levelSchema", () => {
-  // The board's row count is derived as data.length / columns, so a level whose
-  // cells don't fill whole rows yields a fractional `rows`. The board is then
-  // built with more cells than the level declares, and every snapshot of it
-  // fails fromSnapshot's `board.length !== rows * columns` check — the game
-  // looks playable but silently discards the save on every reload.
   it("rejects a cell count that does not divide into whole rows", () => {
     expect(accepts({ data: cells(12), columns: 5 })).toBe(false);
   });
@@ -68,16 +63,11 @@ describe("layered cells", () => {
     expect(parsed.levels[0].data[0].layers).toEqual([]);
   });
 
-  // createInitialState skips an EMPTY cell outright, so anything authored on
-  // one would vanish without a word. Caught at parse rather than at play.
   it("rejects a hole that tries to hold covers or a flower", () => {
     expect(withCell({ type: "EMPTY", layers: [{ kind: "VINE" }] })).toBe(false);
     expect(withCell({ type: "EMPTY", piece: "apple_half/happy" })).toBe(false);
   });
 
-  // Only level.pieces is preloaded, so a flower from outside that pool would
-  // resolve to a missing texture — the check fromSnapshot already makes of a
-  // restored save, applied to authored content.
   it("rejects a flower that is not in the level's piece pool", () => {
     expect(withCell({ piece: "carrot/happy" })).toBe(false);
   });
@@ -93,8 +83,6 @@ describe("layered cells", () => {
 });
 
 describe("the shipped config", () => {
-  // config/index.ts parses at import, so a level edit that breaks the schema
-  // fails here rather than at app startup.
   it("describes levels whose cells fill whole rows", () => {
     for (const level of shippedConfig.levels) {
       expect(level.data.length % level.columns).toBe(0);

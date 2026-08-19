@@ -6,7 +6,6 @@ const KEY = "test:save";
 const schema = z.object({ moves: z.number().int().min(0) });
 const fallback = { moves: 0 };
 
-/** Backs `localStorage` with a plain Map, optionally one that fails to write. */
 const stubStorage = (setItem?: () => never) => {
   const entries = new Map<string, string>();
   vi.stubGlobal("localStorage", {
@@ -45,9 +44,6 @@ describe("getStorage", () => {
 });
 
 describe("setStorage", () => {
-  // Saving runs inside the game store's subscription, so a throw here escapes
-  // the tap handler that triggered it and breaks every later move. Both of
-  // these must cost the player a save, not the session.
   it("survives a backing store that refuses to write", () => {
     stubStorage(() => {
       throw new DOMException("quota exceeded", "QuotaExceededError");

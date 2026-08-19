@@ -2,9 +2,8 @@ import { Application, type ApplicationOptions } from "pixi.js";
 import { CAssetLoader } from "./assets";
 
 export interface IEngineOptions {
-  /** Canvas parent and resize target; size it via CSS (e.g. inside safe areas). */
   mount: HTMLElement;
-  /** Relative URL of the AssetPack manifest, e.g. "assets/manifest.json". */
+  basePath: string;
   manifestUrl: string;
   appOptions?: Partial<ApplicationOptions>;
 }
@@ -22,14 +21,15 @@ export async function createEngine<K extends string>(
     resolution: window.devicePixelRatio || 1,
     autoDensity: true,
     powerPreference: "high-performance",
-    preference: "webgl", // deterministic renderer inside iOS WKWebView
-    antialias: false, // sprite-based rendering; not worth the mobile GPU cost
+    preference: "webgl",
+    antialias: false,
     resizeTo: options.mount,
     ...options.appOptions,
   });
   options.mount.appendChild(app.canvas);
 
-  const assets = await CAssetLoader.init<K>(options.manifestUrl);
+  const assets = new CAssetLoader<K>();
+  await assets.init(options.basePath, options.manifestUrl);
 
   return { app, assets };
 }

@@ -7,17 +7,9 @@ import config from "../config";
 import { TRAY_SIZE } from "../model/rules";
 import type { TGameState } from "../model/types";
 
-// Horizontal distance between adjacent piece slots. Must exceed CPIECE_WIDTH
-// so an arrow fits in the gap between two pieces.
 const SLOT_SPACING = CPIECE_WIDTH * 1.6;
-// Pieces are dimmed while waiting in the tray; full opacity once placed.
 const TRAY_PIECE_ALPHA = 0.8;
 
-/**
- * The view of `state.tray`. Which flowers are queued, and which one goes next,
- * is decided by the rules — this only draws the queue it is given, left to
- * right, newest first.
- */
 export class CTray extends CContainer {
   private readonly pieces = new Map<number, CPiece>();
 
@@ -40,22 +32,20 @@ export class CTray extends CContainer {
   }
 
   private createBackground() {
-    const sprite = new Sprite(getAsset<Texture>("bars/bar_wood_3"));
+    const sprite = new Sprite(getAsset<Texture>("bottom-bar"));
     sprite.anchor.set(0.5);
     sprite.scale.set(config.width / sprite.width);
     this.container.addChild(sprite);
   }
 
   private createArrows() {
-    // Arrows sit in the gaps between the slots, pointing right so the pieces
-    // read as flowing left -> right.
     for (let index = 0; index < TRAY_SIZE - 1; index++) {
-      const arrow = new Sprite(getAsset<Texture>("decor/wood_arrow_down"));
+      const arrow = new Sprite(getAsset<Texture>("drop-down-arrow"));
       arrow.anchor.set(0.5);
       const scale = (CPIECE_WIDTH * 0.5) / Math.max(arrow.width, arrow.height);
       arrow.scale.set(scale);
-      arrow.rotation = -Math.PI / 2; // point right
-      arrow.tint = 0x5c3a22; // darken so it reads against the wood bar
+      arrow.rotation = -Math.PI / 2;
+      arrow.tint = 0x5c3a22;
       arrow.position.set(
         (slotX(index, TRAY_SIZE) + slotX(index + 1, TRAY_SIZE)) * 0.5,
         0,
@@ -65,6 +55,5 @@ export class CTray extends CContainer {
   }
 }
 
-/** Centred slot positions: index 0 is leftmost, the last one is the front. */
 const slotX = (index: number, count: number) =>
   (index - (count - 1) * 0.5) * SLOT_SPACING;

@@ -7,9 +7,6 @@ import type { CellId } from "../id";
 import type { TEffect, TMoveReport } from "../model/resolve";
 import type { TBlockerKind } from "../model/types";
 
-/** Delay between one effect's burst and the next. The state is already final
- *  when a report arrives, so this is cosmetic pacing only: it makes a move that
- *  tears two covers read as two events rather than one flash. */
 const EFFECT_STAGGER = 0.08;
 const BURST_DURATION = 0.5;
 const BURST_PARTICLES = 7;
@@ -18,27 +15,7 @@ const BURST_PARTICLE_SIZE = CCELL_WIDTH * 0.42;
 
 export type TPoint = { x: number; y: number };
 
-/**
- * Plays a move's effect log as particle bursts, in the order the model
- * resolved them.
- *
- * This is the only thing a TMoveReport drives. The board is still a pure
- * function of the state and has already drawn the final position by the time
- * anything here runs — a burst never decides what is on the board, it only
- * says what just happened there.
- *
- * Motion drives these on its own rAF loop rather than on `app.ticker`, so the
- * `ticker.stop()` in the Capacitor pause handler does not freeze them. It does
- * not need to: a backgrounded webview stops serving rAF anyway, and a burst
- * lasts half a second.
- */
 export class CEffects {
-  /**
-   * One emitter per cover kind, built on first use. Not an optimisation: a
-   * ParticleContainer draws every particle from a single texture, and the
-   * kinds' art sits on different atlas pages — so sharing one container would
-   * draw every burst in whichever texture happened to be bound first.
-   */
   private readonly emitters = new Map<TBlockerKind, CBurstEmitter>();
 
   constructor(private readonly container: Container) {}
@@ -57,8 +34,6 @@ export class CEffects {
     }
   }
 
-  /** Stops everything in flight and drops it from the stage, so a burst cannot
-   *  outlive the board it was drawn over. */
   destroy() {
     for (const emitter of this.emitters.values()) emitter.destroy();
     this.emitters.clear();
@@ -77,23 +52,14 @@ export class CEffects {
   }
 }
 
-/** One cover kind's burst: a ParticleContainer of its art, plus the animations
- *  currently flying out of it. */
 class CBurstEmitter {
   readonly container: ParticleContainer;
   private readonly running = new Set<{ stop: () => void }>();
-  /** Scale that fits the art into BURST_PARTICLE_SIZE. Measured against the
-   *  texture's untrimmed size, because that is what a Particle builds its quad
-   *  from — the packer trims and rotates frames, so the frame's own width is
-   *  not the number to divide by. */
   private readonly scale: number;
 
   constructor(private readonly texture: Texture) {
     this.scale = BURST_PARTICLE_SIZE / Math.max(texture.width, texture.height);
     this.container = new ParticleContainer({
-      // Everything a burst animates has to be declared dynamic, or the values
-      // uploaded on the first frame are what stay on screen. Only uvs and
-      // vertex stay static: one texture, one quad size.
       dynamicProperties: {
         position: true,
         scale: true,
@@ -107,9 +73,6 @@ class CBurstEmitter {
 
   burst(at: TPoint, delay: number) {
     for (let index = 0; index < BURST_PARTICLES; index++) {
-      // Fanned evenly rather than randomly: the model is deterministic and its
-      // PRNG cursor is persisted, so reaching for Math.random here would make
-      // the one part of a move that is not reproducible.
       const angle = (index / BURST_PARTICLES) * Math.PI * 2;
       const spin = index % 2 === 0 ? 1 : -1;
 
@@ -121,8 +84,6 @@ class CBurstEmitter {
         anchorY: 0.5,
         scaleX: this.scale,
         scaleY: this.scale,
-        // Started pointing the way it will travel, so the fan reads as a
-        // scatter rather than seven copies of the same sprite.
         rotation: angle,
       });
       this.container.addParticle(particle);
@@ -141,9 +102,6 @@ class CBurstEmitter {
       );
       this.running.add(controls);
 
-      // A spent particle is removed rather than parked at alpha 0: the
-      // container rebuilds its buffer from particleChildren, so one left in
-      // the list costs a quad on every frame afterwards.
       void controls.then(() => {
         this.running.delete(controls);
         this.container.removeParticle(particle);
@@ -158,20 +116,12 @@ class CBurstEmitter {
   }
 }
 
-/**
- * Which kind's burst an effect calls for, or null for one that shows nothing.
- * Keeping this a lookup on the effect rather than a method on the view means a
- * blocker that clears is still able to burst after its view is gone — which is
- * exactly when it needs to.
- */
 const burstFor = (effect: TEffect): TBlockerKind | null => {
   switch (effect.type) {
     case "LAYER_CLEARED":
       return effect.kind === "PIECE" ? null : effect.kind;
     case "LAYER_REPLACED":
       return effect.kind === "PIECE" ? null : effect.kind;
-    // A cover that only lost a hit is redrawn a stage thinner by the board,
-    // which is feedback enough; a burst on every chip would drown the clear.
     case "LAYER_DAMAGED":
     case "PIECE_PLACED":
     case "PIECE_DRAINED":

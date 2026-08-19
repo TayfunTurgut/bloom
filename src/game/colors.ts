@@ -3,6 +3,7 @@ export const COLOR_FONT_FILL_GREEN = "#d8f3cc";
 export const COLOR_FONT_STROKE_GREEN = "#9b7258";
 export const COLOR_FONT_FILL_GRAY = "#d5dcdf";
 export const COLOR_FONT_STROKE_GRAY = "#aa7b64";
+export const COLOR_FONT_STROKE_DARK_GRAY = "#444444";
 export const COLOR_FONT_FILL_BROWN = "#a26646";
 export const COLOR_GOAL_PROGRESS_BACKGROUND = "#c49179";
 export const COLOR_GOAL_PROGRESS_FILL = "#cefe8f";

@@ -7,11 +7,6 @@ import { COLOR_FONT_FILL_BROWN } from "../../colors";
 import config from "../../config";
 import type { TGameState, TGoal } from "../../model/types";
 
-// Slot centres as a fraction of the panel width, spaced so the inner pair
-// clears the move counter in the middle. The length of this list is the real
-// cap on how many goals can be drawn, which is what config/schema.ts bounds
-// `goals` at four to respect — a fifth would index off the end and position
-// the item to NaN.
 const ITEM_X_OFFSETS = [-0.35, -0.185, 0.185, 0.35];
 
 export class CGoalPanel extends CContainer<
@@ -39,7 +34,7 @@ export class CGoalPanel extends CContainer<
   }
 
   private createBackground() {
-    const texture = getAsset<Texture>("bars/plank_bar");
+    const texture = getAsset<Texture>("top-game-bar");
     const background = new Sprite(texture);
     background.anchor.set(0.5);
     background.scale.set(config.width / background.width);
@@ -50,8 +45,8 @@ export class CGoalPanel extends CContainer<
     const background = this.getChildByLabel("background");
     goals.forEach((goal, index) => {
       const item = new CGoalItem(goal);
-      const scale = background.width / item.container.width;
-      item.container.scale.set(scale * 0.15);
+      const scale = background.height / item.container.height;
+      item.container.scale.set(scale * 0.85);
       item.container.position.set(
         background.width * ITEM_X_OFFSETS[index],
         -background.height * 0.05,
@@ -75,17 +70,17 @@ export class CGoalPanel extends CContainer<
     const background = this.getChildByLabel("background");
     const font = getAsset<FontFace>("Baloo2-Bold");
     const text = new Text({
-      text: `~${level + 1}~`, // levels are 0-indexed in state, 1-indexed on screen
+      text: `~${level + 1}~`,
       style: {
         fontFamily: font.family,
         fontWeight: "bold",
-        fontSize: 40,
+        fontSize: 42,
         fill: COLOR_FONT_FILL_BROWN,
         align: "center",
       },
     });
     text.anchor.set(0.5);
-    text.position.set(0, background.height * 0.255);
+    text.position.set(0, background.height * 0.375);
     this.addNamedChild("levelText", text);
   }
 }

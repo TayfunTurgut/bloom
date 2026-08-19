@@ -8,15 +8,12 @@ class CCounter extends CStore<{ count: number }> {
   }
 }
 
-/** A store whose changes also describe themselves — the shape CGameStore uses
- *  to hand a move's ordered effect log to the views. */
 class CLedger extends CStore<{ count: number }, string[]> {
   add(...reasons: string[]) {
     this._state.count += reasons.length;
     this.notify(reasons);
   }
 
-  /** A change with nothing to say about itself, which is legal on purpose. */
   reset() {
     this._state.count = 0;
     this.notify();
@@ -47,9 +44,6 @@ describe("CStore", () => {
     expect(seen).toEqual([1]);
   });
 
-  // The two cases below are the whole point of notify's snapshot of the
-  // listener set: a notification reaches exactly the listeners that were
-  // subscribed when it began, whatever the callbacks do to that set.
   it("still delivers to a listener unsubscribed mid-notification", () => {
     const store = new CCounter({ count: 0 });
     const seen: string[] = [];
@@ -102,8 +96,6 @@ describe("a store whose changes carry an event", () => {
     store.add("a");
     store.reset();
 
-    // The state is still the whole truth of what the value *is*; the event only
-    // ever adds what a re-read cannot recover. A store is free to have none.
     expect(seen).toEqual([["a"], undefined]);
   });
 });

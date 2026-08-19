@@ -16,8 +16,6 @@ import type { TGameState, TPiece } from "./types";
 const APPLE = "apple_half/happy";
 const CARROT = "carrot/happy";
 
-/** TLevel is the schema's *output* type, so a fixture spells out the defaults
- *  the parser would have filled in. */
 const cell = (over: Partial<TLevel["data"][number]> = {}) => ({
   type: "FILLED" as const,
   layers: [],
@@ -31,7 +29,6 @@ const level: TLevel = {
   pieces: [APPLE, CARROT],
 };
 
-/** The same 3x3 board with the centre cell cut out. */
 const holedLevel: TLevel = {
   ...level,
   data: level.data.map((entry, index) =>
@@ -41,7 +38,6 @@ const holedLevel: TLevel = {
 
 const SEED = 12345;
 
-/** The tray is plain data, so a test can simply decide what comes next. */
 const stack = (state: TGameState, ...pieces: Partial<TPiece>[]) => {
   state.tray = pieces.map((piece, index) => ({
     id: 1000 + index,
@@ -53,8 +49,6 @@ const stack = (state: TGameState, ...pieces: Partial<TPiece>[]) => {
   }));
 };
 
-/** The flower in a cell, covered or not — most tests care about the flower,
- *  not the stack it happens to be under. */
 const at = (state: TGameState, x: number, y: number) => {
   const cell = state.board.get(cellIdFromXY(x, y));
   return cell ? pieceIn(cell) : undefined;
@@ -137,8 +131,8 @@ describe("placeFromTray", () => {
     placeFromTray(state, 1, 0);
 
     expect(at(state, 1, 0)?.type).toBe("SUPPLY");
-    expect(at(state, 2, 0)?.currentValue).toBe(4); // 7 - 3, the higher neighbour
-    expect(at(state, 0, 0)?.currentValue).toBe(5); // untouched
+    expect(at(state, 2, 0)?.currentValue).toBe(4);
+    expect(at(state, 0, 0)?.currentValue).toBe(5);
   });
 
   it("drains the neighbour above when two neighbours tie on value", () => {
@@ -151,9 +145,6 @@ describe("placeFromTray", () => {
     stack(state, { currentValue: 2 });
     placeFromTray(state, 1, 1);
 
-    // The candidate order in neighborsOf is load-bearing: the reduce keeps the
-    // later entry on a tie, so `up` wins over `left`. Reordering that list
-    // would quietly change which flower drains.
     expect(at(state, 1, 0)?.currentValue).toBe(4);
     expect(at(state, 0, 1)?.currentValue).toBe(6);
   });
@@ -166,8 +157,6 @@ describe("placeFromTray", () => {
     stack(state, { currentValue: PIECE_VALUE_MAX });
     placeFromTray(state, 1, 0);
 
-    // Save schemas that bound currentValue at zero would reject this state at
-    // runtime, on a device, with no way back — see state/schema.ts.
     expect(at(state, 0, 0)?.currentValue).toBe(1 - PIECE_VALUE_MAX);
   });
 
@@ -213,7 +202,6 @@ describe("a level with holes", () => {
 });
 
 describe("a covered cell", () => {
-  /** A 3x3 board with a one-hit vine over a carrot in the centre. */
   const vinedLevel: TLevel = {
     ...level,
     data: level.data.map((entry, index) =>
@@ -247,8 +235,6 @@ describe("a covered cell", () => {
     const buried = at(state, 1, 1);
     const buriedValue = buried?.currentValue;
 
-    // Covered: the placement finds no neighbour at all, so it stays a bloom
-    // and drains nothing — the vine is what makes that flower inert.
     expect(exposedPieceAt(state, 1, 1)).toBeNull();
     stack(state, { currentValue: 4 });
     placeFromTray(state, 1, 0);
@@ -256,11 +242,9 @@ describe("a covered cell", () => {
     expect(at(state, 1, 0)?.type).toBe("BLOOM");
     expect(buried?.currentValue).toBe(buriedValue);
 
-    // That same placement was adjacent, so it tore the one-hit vine open.
     expect(stackAt(state, 1, 1)?.map((layer) => layer.kind)).toEqual(["PIECE"]);
     expect(exposedPieceAt(state, 1, 1)).toBe(buried);
 
-    // Uncovered, it is an ordinary neighbour again.
     stack(state, { currentValue: 3 });
     placeFromTray(state, 0, 1);
     expect(at(state, 0, 1)?.type).toBe("SUPPLY");

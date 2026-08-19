@@ -5,7 +5,6 @@ on:
   push:
     branches: [main]
 
-# A newer push to the same branch supersedes an in-flight run.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -21,7 +20,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # pnpm must exist before setup-node so its cache resolver can find the store.
       - uses: pnpm/action-setup@v4
         with:
           version: 10
@@ -37,23 +35,15 @@ jobs:
       - name: Check formatting
         run: pnpm format:check
 
-      # Unit tests for the pure layers: no pixi, no assets, so they run before
-      # the build and fail fast.
       - name: Test
         run: pnpm test
 
-      # package.json is the source of truth for the marketing version; the
-      # pbxproj copy is generated and committed, so it can drift.
       - name: Verify Xcode project version is in sync
         run: pnpm run version:sync --check
 
-      # assetpack -> eslint -> tsc -> vite build. The order is load-bearing:
-      # assetpack regenerates src/assetpack/assets.d.ts, which lint and tsc read.
       - name: Build
         run: pnpm build
 
-      # assets.d.ts is generated but committed, so a stale copy would let the
-      # build pass locally while lint/tsc check the wrong asset key union.
       - name: Verify generated asset types are committed
         run: |
           if ! git diff --exit-code -- src/assetpack/assets.d.ts; then
@@ -61,13 +51,9 @@ jobs:
             exit 1
           fi
 
-      # Catches capacitor.config.ts / plugin drift without needing macOS.
       - name: Sync native project
         run: pnpm exec cap sync ios
 
-      # Package.swift hardcodes pnpm's versioned node_modules/.pnpm paths, so a
-      # dependency bump silently invalidates the committed copy and Xcode fails
-      # to resolve SPM on a machine that has not re-run `cap sync`.
       - name: Verify native package manifest is committed
         run: |
           if ! git diff --exit-code -- ios/App/CapApp-SPM/Package.swift; then
@@ -75,8 +61,6 @@ jobs:
             exit 1
           fi
 
-      # dist/ is a fully static, relative-base bundle: same artifact serves the
-      # web build and the iOS payload.
       - name: Upload web build
         uses: actions/upload-artifact@v4
         with:

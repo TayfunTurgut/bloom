@@ -1,6 +1,5 @@
 import type { Container } from "pixi.js";
 
-/** What syncViews needs of a view. CPiece already satisfies it unchanged. */
 export type IView<TDatum> = {
   container: Container;
   sync(datum: TDatum): void;
@@ -8,28 +7,12 @@ export type IView<TDatum> = {
 };
 
 export type TViewEntry<TDatum> = {
-  /** Whatever the datum is keyed on — a piece id, a layer id. Stable for the
-   *  datum's whole life, and never reused within a game. */
   key: number;
   datum: TDatum;
   x: number;
   y: number;
 };
 
-/**
- * Keyed reconciliation, shared by every list of views on screen: present in
- * state but not on screen → create; present in both → reposition and sync; on
- * screen but gone from state → destroy.
- *
- * A datum that moves between two of these lists (tray → board) is destroyed in
- * one and created in the other, so each list stays a plain function of the
- * slice of state it draws.
- *
- * `addChild` runs for every entry, not only new ones. Pixi treats that as a
- * move-to-end on a child it already holds, so the final child order is exactly
- * the entry order — which is how a cell's layers stay stacked bottom to top
- * without `sortableChildren` costing a sort on every change.
- */
 export const syncViews = <TDatum, TView extends IView<TDatum>>(
   views: Map<number, TView>,
   parent: Container,

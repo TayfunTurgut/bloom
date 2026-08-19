@@ -16,7 +16,6 @@ const cell = (over: Partial<TCellInput> = {}): TCellInput => ({
   ...over,
 });
 
-/** A 3x3 level, with whatever covers the test cares about placed by index. */
 const levelWith = (covers: Record<number, TCellInput>): TLevel => ({
   data: Array.from({ length: 9 }, (_, index) => covers[index] ?? cell()),
   columns: 3,
@@ -45,9 +44,6 @@ const kindsAt = (state: TGameState, x: number, y: number) =>
 
 describe("the behavior registry", () => {
   it("has an entry for every layer kind, blockers included", () => {
-    // The Record type already makes a missing entry a compile error; this
-    // catches one stubbed in with a cast, and pairs a kind with the visuals
-    // registry the board looks it up in.
     for (const kind of BLOCKER_KINDS) {
       expect(LAYER_BEHAVIORS[kind]).toBeDefined();
     }
@@ -86,8 +82,6 @@ describe("a vine, which reacts to adjacency", () => {
     const report = placeFromTray(state, 1, 0);
 
     expect(kindsAt(state, 1, 1)).toEqual(["PIECE"]);
-    // Both effects, in this order: a view can play the hit and then the burst
-    // rather than having to infer the death from a hit count.
     expect(report?.effects).toEqual([
       { type: "PIECE_PLACED", cell: cellIdFromXY(1, 0), pieceId: 1000 },
       {
@@ -116,10 +110,10 @@ describe("a vine, which reacts to adjacency", () => {
     const state = createInitialState(0, vined(2), SEED);
 
     stack(state, { currentValue: 2 });
-    const report = placeFromTray(state, 0, 0); // diagonal, not orthogonal
+    const report = placeFromTray(state, 0, 0);
 
     expect(topAt(state, 1, 1)).toMatchObject({ hits: 2 });
-    expect(report?.effects).toHaveLength(1); // the placement, nothing else
+    expect(report?.effects).toHaveLength(1);
   });
 });
 
@@ -133,7 +127,7 @@ describe("a stone slab, which reacts to the move ending", () => {
     const state = createInitialState(0, stoned(2), SEED);
 
     stack(state, { currentValue: 2 });
-    placeFromTray(state, 0, 0); // the far corner
+    placeFromTray(state, 0, 0);
 
     expect(topAt(state, 1, 1)).toMatchObject({ kind: "STONE", hits: 1 });
   });
@@ -151,9 +145,6 @@ describe("a stone slab, which reacts to the move ending", () => {
 
 describe("stacking", () => {
   it("peels the topmost cover first and leaves the one under it alone", () => {
-    // A stone slab over a vine over a carrot. The stone is what a trigger
-    // reaches, so the vine takes nothing until the stone is gone — even though
-    // this placement is adjacent, which is what a vine reacts to.
     const state = createInitialState(
       0,
       levelWith({
@@ -172,7 +163,6 @@ describe("stacking", () => {
     placeFromTray(state, 1, 0);
     expect(kindsAt(state, 1, 1)).toEqual(["PIECE", "VINE"]);
 
-    // Now the vine is on top, so the next adjacent placement reaches it.
     placeFromTray(state, 0, 1);
     expect(kindsAt(state, 1, 1)).toEqual(["PIECE"]);
   });
@@ -203,15 +193,12 @@ describe("stacking", () => {
 
 describe("the effect log", () => {
   it("orders adjacency damage the way neighborsOf lists candidates", () => {
-    // Vines to the right of and below (1,1), plus one to its left. resolve.ts
-    // walks right, down, left, up — the same order the drain rule breaks ties
-    // in — so the log must read right, then down, then left.
     const state = createInitialState(
       0,
       levelWith({
-        5: cell({ layers: [{ kind: "VINE", hits: 2 }] }), // (2,1), to the right
-        7: cell({ layers: [{ kind: "VINE", hits: 2 }] }), // (1,2), below
-        3: cell({ layers: [{ kind: "VINE", hits: 2 }] }), // (0,1), to the left
+        5: cell({ layers: [{ kind: "VINE", hits: 2 }] }),
+        7: cell({ layers: [{ kind: "VINE", hits: 2 }] }),
+        3: cell({ layers: [{ kind: "VINE", hits: 2 }] }),
       }),
       SEED,
     );

@@ -20,14 +20,13 @@ export class CGoalItem extends CContainer<{
     this.createGoalImage(goal);
   }
 
-  /** Remaining count and the completion tick are derived, never stored. */
   render(goal: TGoal) {
     this.getChildByLabel("goalText").text = goalRemaining(goal);
     this.getChildByLabel("tickMark").visible = isGoalComplete(goal);
   }
 
   private createBackground() {
-    const texture = getAsset<Texture>("panels/rounded");
+    const texture = getAsset<Texture>("pieces-needed-bg");
     const background = new Sprite(texture);
     background.anchor.set(0.5);
     this.addNamedChild("background", background);
@@ -50,14 +49,14 @@ export class CGoalItem extends CContainer<{
       },
     });
     text.anchor.set(0.5);
-    text.scale.set(2.2);
-    text.position.set(0, -background.height * 0.32);
+    text.scale.set(1.4);
+    text.position.set(0, -background.height * 0.33);
     this.addNamedChild("goalText", text);
   }
 
   private createTickMark() {
     const goalText = this.getChildByLabel("goalText");
-    const texture = getAsset<Texture>("badges/check_badge");
+    const texture = getAsset<Texture>("btn-check");
     const sprite = new Sprite({ texture });
     sprite.anchor.set(0.5);
     const scale = goalText.height / sprite.height;
@@ -78,7 +77,7 @@ export class CGoalItem extends CContainer<{
       (background.height * 0.6) / sprite.height,
     );
     sprite.scale.set(scale);
-    sprite.position.set(0, background.height * 0.05);
+    sprite.position.set(0, background.height * 0.075);
     this.addNamedChild("goalImage", sprite);
   }
 }

@@ -1,13 +1,3 @@
-// Propagates the version in package.json into the Xcode project, which has no
-// way to read it. package.json is the source of truth; MARKETING_VERSION in
-// ios/App/App.xcodeproj/project.pbxproj is generated from it and committed.
-//
-//   node scripts/sync-version.mjs           rewrite the pbxproj
-//   node scripts/sync-version.mjs --check   fail if it is out of date (CI)
-//
-// The build number (CURRENT_PROJECT_VERSION) is deliberately not managed here:
-// it has no package.json equivalent and CI derives it from the run number.
-
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -25,9 +15,6 @@ function fail(message) {
 
 const { version } = JSON.parse(readFileSync(packagePath, "utf8"));
 
-// CFBundleShortVersionString must be one to three dot-separated integers, so a
-// semver prerelease or build suffix (1.0.0-beta.1) is rejected here rather than
-// by App Store Connect after a full archive has already run.
 if (typeof version !== "string" || !/^\d+(\.\d+){0,2}$/.test(version)) {
   fail(
     `package.json version "${version}" is not a valid iOS marketing version`,

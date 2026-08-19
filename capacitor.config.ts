@@ -5,16 +5,15 @@ const config: CapacitorConfig = {
   appName: "Bloom",
   webDir: "dist",
   ios: {
-    contentInset: "never", // paint edge-to-edge; safe areas handled in CSS
+    contentInset: "never",
     backgroundColor: "#000000",
   },
   plugins: {
     SplashScreen: {
-      launchAutoHide: false, // hidden from code once the scene is ready
+      launchAutoHide: false,
       backgroundColor: "#000000",
     },
   },
-  // No `server.url` here, ever: store builds must bundle everything locally.
 };
 
 export default config;

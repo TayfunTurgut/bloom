@@ -1,6 +1,5 @@
 html,
 body {
-  /* Fixed inset instead of 100vh: stable under iOS URL-bar/rotation changes. */
   position: fixed;
   inset: 0;
   margin: 0;
@@ -8,7 +7,6 @@ body {
   overflow: hidden;
   background-color: #000000;
   overscroll-behavior: none;
-  /* Keep the WebView from hijacking game gestures. */
   touch-action: none;
   -webkit-user-select: none;
   user-select: none;
@@ -19,7 +17,6 @@ body {
 #app {
   position: fixed;
   inset: 0;
-  /* Keep the game clear of the notch / Dynamic Island / home indicator. */
   padding: env(safe-area-inset-top) env(safe-area-inset-right)
     env(safe-area-inset-bottom) env(safe-area-inset-left);
   display: flex;
@@ -28,7 +25,6 @@ body {
 }
 
 #pixi-container {
-  /* The canvas resizeTo target: fills #app inside the safe-area padding. */
   width: 100%;
   height: 100%;
 }
