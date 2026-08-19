@@ -5,6 +5,7 @@ import { CContainer } from "../../engine/container";
 
 export const CCELL_WIDTH = 100;
 export const CCELL_HEIGHT = 100;
+export const CCELL_GAP = 8;
 
 type ICellOptions = {
   x: number;
@@ -29,7 +30,7 @@ export class CCell extends CContainer {
 
     const sprite = new Sprite(getAsset<Texture>("game-grid-bg"));
     sprite.anchor.set(0.5);
-    sprite.setSize(CCELL_WIDTH, CCELL_HEIGHT);
+    sprite.setSize(CCELL_WIDTH - CCELL_GAP, CCELL_HEIGHT - CCELL_GAP);
     this.container.addChild(sprite);
 
     this.setupInteractivity();

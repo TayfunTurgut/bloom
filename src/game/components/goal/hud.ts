@@ -3,7 +3,7 @@ import { Sprite, Text, type PointData, type Texture } from "pixi.js";
 import { CContainer } from "../../../engine/container";
 import { getAsset } from "../../assets";
 import {
-  COLOR_FONT_FILL_GRAY,
+  COLOR_FONT_FILL_LIGHT,
   COLOR_FONT_STROKE_GRAY,
   COLOR_GOAL_PROGRESS_BACKGROUND,
   COLOR_GOAL_PROGRESS_FILL,
@@ -78,7 +78,7 @@ export class CGoalHud extends CContainer<{
       style: {
         fontFamily: font.family,
         fontSize: 64,
-        fill: COLOR_FONT_FILL_GRAY,
+        fill: COLOR_FONT_FILL_LIGHT,
         stroke: {
           color: COLOR_FONT_STROKE_GRAY,
           width: 8,

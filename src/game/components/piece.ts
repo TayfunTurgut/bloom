@@ -1,7 +1,7 @@
 import { Sprite, Text, Texture } from "pixi.js";
 import { CContainer } from "../../engine/container";
 import { getAsset } from "../assets";
-import { CCELL_HEIGHT, CCELL_WIDTH } from "./cell";
+import { CCELL_GAP, CCELL_HEIGHT, CCELL_WIDTH } from "./cell";
 import { CAnimations, tween } from "./motion";
 import type { AssetKey } from "../../assetpack/assets";
 import type { TCropState, TPiece } from "../model/types";
@@ -85,7 +85,7 @@ export class CPiece extends CContainer<{
     growth.visible = piece.type === "GROWING" && piece.currentValue > 0;
     if (growth.visible) {
       growth.texture = getAsset<Texture>(growthTextureFor(piece.currentValue));
-      growth.setSize(CCELL_WIDTH, CCELL_HEIGHT);
+      growth.setSize(CCELL_WIDTH - CCELL_GAP, CCELL_HEIGHT - CCELL_GAP);
     }
     text.visible = piece.type !== "SUPPLY";
     text.text = piece.currentValue;

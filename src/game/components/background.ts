@@ -3,9 +3,9 @@ import { getAsset } from "../assets";
 import { onResize } from "../../engine/resize";
 
 export const createBackground = (app: Application): TilingSprite => {
-  const sprite = new TilingSprite({
-    texture: getAsset<Texture>("background_seamless"),
-  });
+  const texture = getAsset<Texture>("background_seamless");
+  texture.source.addressMode = "repeat";
+  const sprite = new TilingSprite({ texture });
   sprite.tileScale.set(0.5);
   onResize(
     app,

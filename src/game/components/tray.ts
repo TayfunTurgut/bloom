@@ -8,9 +8,14 @@ import config from "../config";
 import { TRAY_SIZE } from "../model/rules";
 import type { TGameState } from "../model/types";
 
-const SLOT_SPACING = CPIECE_WIDTH * 1.6;
+const TRAY_PIECE_SCALE = 1.2;
+const SLOT_SPACING = CPIECE_WIDTH * TRAY_PIECE_SCALE + 28;
+const SLOT0_X = -204;
+const DIVIDER_X = 130;
+const DIVIDER_HEIGHT = 96;
+const SWAP_BUTTON_X = 210;
 const TRAY_PIECE_ALPHA = 0.8;
-const SWAP_BUTTON_SIZE = 72;
+const SWAP_BUTTON_SIZE = 84;
 const SWAP_ARC = 42;
 const SWAP_DURATION = 0.35;
 
@@ -27,17 +32,19 @@ export class CTray extends CContainer<TNone, TTrayEvents> {
 
     this.createBackground();
     this.createArrows();
+    this.createDivider();
     this.createSwapButton();
   }
 
   render(state: TGameState) {
     const placements: TPiecePlacement[] = state.tray.map((piece, index) => ({
       piece,
-      x: slotX(index, state.tray.length),
+      x: slotX(index),
       y: 0,
     }));
     syncPieceViews(this.pieces, this.container, placements, (view) => {
       view.container.alpha = TRAY_PIECE_ALPHA;
+      view.container.scale.set(TRAY_PIECE_SCALE);
     });
   }
 
@@ -86,12 +93,17 @@ export class CTray extends CContainer<TNone, TTrayEvents> {
       arrow.scale.set(scale);
       arrow.rotation = -Math.PI / 2;
       arrow.tint = 0x5c3a22;
-      arrow.position.set(
-        (slotX(index, TRAY_SIZE) + slotX(index + 1, TRAY_SIZE)) * 0.5,
-        0,
-      );
+      arrow.position.set((slotX(index) + slotX(index + 1)) * 0.5, 0);
       this.container.addChild(arrow);
     }
+  }
+
+  private createDivider() {
+    const divider = new Sprite(getAsset<Texture>("window-bar-vertical"));
+    divider.anchor.set(0.5);
+    divider.scale.set(DIVIDER_HEIGHT / divider.height);
+    divider.position.set(DIVIDER_X, 0);
+    this.container.addChild(divider);
   }
 
   private createSwapButton() {
@@ -99,10 +111,7 @@ export class CTray extends CContainer<TNone, TTrayEvents> {
     button.anchor.set(0.5);
     const scale = SWAP_BUTTON_SIZE / Math.max(button.width, button.height);
     button.scale.set(scale);
-    button.position.set(
-      slotX(TRAY_SIZE - 1, TRAY_SIZE) + SLOT_SPACING * 0.85,
-      0,
-    );
+    button.position.set(SWAP_BUTTON_X, 0);
     button.eventMode = "static";
     button.cursor = "pointer";
     const restore = () => {
@@ -118,5 +127,4 @@ export class CTray extends CContainer<TNone, TTrayEvents> {
   }
 }
 
-const slotX = (index: number, count: number) =>
-  (index - (count - 1) * 0.5) * SLOT_SPACING;
+const slotX = (index: number) => SLOT0_X + index * SLOT_SPACING;

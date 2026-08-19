@@ -2,7 +2,7 @@ import { Sprite, Text, Texture, type PointData } from "pixi.js";
 import { CContainer } from "../../engine/container";
 import { getAsset } from "../assets";
 import { CAnimations, tween, type TEase } from "./motion";
-import { COLOR_FONT_FILL_GRAY, COLOR_FONT_STROKE_GRAY } from "../colors";
+import { COLOR_FONT_FILL_LIGHT, COLOR_FONT_STROKE_GRAY } from "../colors";
 
 const COUNTER_X = 560;
 const REST_Y = -60;
@@ -31,7 +31,7 @@ export class CLeafCounter extends CContainer<{
         fontFamily: getAsset<FontFace>("Baloo2-Bold").family,
         fontWeight: "bold",
         fontSize: 40,
-        fill: COLOR_FONT_FILL_GRAY,
+        fill: COLOR_FONT_FILL_LIGHT,
         stroke: { color: COLOR_FONT_STROKE_GRAY, width: 6 },
         align: "center",
       },

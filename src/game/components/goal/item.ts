@@ -1,6 +1,6 @@
 import { Sprite, Text, Texture } from "pixi.js";
 import { CContainer } from "../../../engine/container";
-import { COLOR_FONT_FILL_GRAY, COLOR_FONT_STROKE_GRAY } from "../../colors";
+import { COLOR_FONT_FILL_LIGHT, COLOR_FONT_STROKE_GRAY } from "../../colors";
 import { getAsset } from "../../assets";
 import { goalRemaining, isGoalComplete } from "../../model/rules";
 import type { TGoal } from "../../model/types";
@@ -40,7 +40,7 @@ export class CGoalItem extends CContainer<{
       style: {
         fontFamily: font.family,
         fontSize: 64,
-        fill: COLOR_FONT_FILL_GRAY,
+        fill: COLOR_FONT_FILL_LIGHT,
         stroke: {
           color: COLOR_FONT_STROKE_GRAY,
           width: 8,

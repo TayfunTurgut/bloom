@@ -33,6 +33,7 @@ const STATIC_ASSET_KEYS: readonly AssetKey[] = [
   "top-game-bar",
   "pieces-needed-bg",
   "background_seamless",
+  "window-bar-vertical",
   "Baloo2-Bold",
   "Baloo2-Regular",
 ];
