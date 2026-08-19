@@ -19,7 +19,7 @@ permissions:
 
 env:
   XCODE_VERSION: "26"
-  BUNDLE_ID: com.tayfunturgut.bloom
+  BUNDLE_ID: com.tayfunturgut.sprout
   ARCHIVE_PATH: ${{ github.workspace }}/build/App.xcarchive
   EXPORT_PATH: ${{ github.workspace }}/build/export
 
@@ -174,7 +174,7 @@ jobs:
       - name: Upload .ipa artifact
         uses: actions/upload-artifact@v4
         with:
-          name: bloom-${{ steps.version.outputs.marketing }}-${{ steps.version.outputs.build }}
+          name: sprout-${{ steps.version.outputs.marketing }}-${{ steps.version.outputs.build }}
           path: ${{ env.EXPORT_PATH }}/*.ipa
           retention-days: 30
 

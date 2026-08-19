@@ -10,7 +10,7 @@ export const profileSchema = z.object({
 
 export type TProfile = z.infer<typeof profileSchema>;
 
-const STORAGE_KEY = "bloom:profile";
+const STORAGE_KEY = "sprout:profile";
 
 export const emptyProfile = (): TProfile => ({
   version: PROFILE_VERSION,

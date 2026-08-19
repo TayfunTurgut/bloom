@@ -1,6 +1,7 @@
-# Bloom
+# Sprout
 
-A PixiJS v8 puzzle game, packaged with Capacitor 8 for iPhone and iPad (iOS 15+).
+A PixiJS v8 grow-and-harvest puzzle game, packaged with Capacitor 8 for iPhone
+and iPad (iOS 15+).
 
 ## Structure
 
@@ -10,7 +11,7 @@ A PixiJS v8 puzzle game, packaged with Capacitor 8 for iPhone and iPad (iOS 15+)
 - `src/game/model/` — the single source of truth: `TGameState` (board, tray,
   goals, score) as plain data, the rules that change it, and snapshot
   serialization. No pixi imports, so it is directly unit-testable.
-- `src/game/` — the rest of Bloom: components, controller, level config, save state.
+- `src/game/` — the rest of Sprout: components, controller, level config, save state.
 - `src/assetpack/` — build-time AssetPack pipes + the generated `assets.d.ts` key union.
 - `src/assets/` — raw art/fonts (input); `public/assets/` is generated output (git-ignored).
 - `ios/` — Capacitor-generated Xcode project (SPM-based; committed).
@@ -19,14 +20,19 @@ A PixiJS v8 puzzle game, packaged with Capacitor 8 for iPhone and iPad (iOS 15+)
 
 A crop is a `TPiece` with a state: `SEED` in the tray, `GROWING` on the board
 under foliage (the overlay art thins as its remaining value drops), or `SUPPLY`
-once spent. Tapping an empty cell plays the rightmost tray crop. With no
-growing cardinal neighbour it sprouts and starts growing at its value;
+once spent. Tapping an empty cell plays the rightmost tray crop; the tray's
+circular-arrow button swaps its two rightmost crops for free. With no growing
+cardinal neighbour the played crop sprouts and starts growing at its value;
 otherwise it becomes supply and feeds its value into the strongest growing
 neighbour — ties go left, feeds clamp at zero. A crop fed to zero is harvested:
 it credits its goal, scores its starting value toward the milestone ring, and
 takes its adjacent supplies with it. Harvesting never cascades into another
-growing crop. A level is won when every goal completes, and failed when the
-board fills first.
+growing crop.
+
+A level is won when every goal completes, and failed when the board fills
+first. Each ring milestone banks a leaf into the persistent profile
+(`sprout:profile`); finishing the last level wraps back to the first with a
+leaf bonus.
 
 A move returns a `TMoveReport`: an ordered log of what happened (`SPROUTED`,
 `FED`, `HARVESTED`, `SCORED`, …). The state is still the whole truth of what
@@ -44,8 +50,13 @@ because a container batches a single texture.
 
 ```bash
 pnpm install
-pnpm dev        # vite dev server on :8080; AssetPack watches src/assets/
+pnpm assetpack  # generate public/assets/ — rerun after changing src/assets/
+pnpm dev        # vite dev server on :8080
 ```
+
+Dev builds accept `?seed=<n>` to fix the RNG and expose
+`window.__sprout` (store + app) for scripted testing; both are stripped from
+production builds.
 
 `pnpm build` runs `assetpack → prettier → eslint → tsc → vite build` — the order
 matters because AssetPack regenerates `src/assetpack/assets.d.ts`, which the
@@ -53,18 +64,16 @@ format, lint and tsc steps all consume.
 
 `pnpm verify` runs just the checks (`format:check → lint → typecheck → test`),
 skipping AssetPack and the bundle. `pnpm install` points `core.hooksPath` at
-`.githooks/`, whose `pre-commit` runs `pnpm verify` — so a commit that is
-misformatted, fails lint, fails to typecheck or breaks a test is rejected.
-Bypass a single commit with `git commit --no-verify`.
+`.githooks/`, whose `pre-commit` runs `pnpm verify` — project-wide, since tsc
+and eslint are project-wide by nature — so a commit that is misformatted, fails
+lint, fails to typecheck or breaks a test is rejected. The hook deliberately
+does not run AssetPack; CI verifies `assets.d.ts` is current. Bypass a single
+commit with `git commit --no-verify`.
 
 `pnpm test` (vitest) covers the pure layers: `src/game/model/`, the level schema
 in `src/game/config/`, and the engine's store and storage helpers. None of them
 need a browser or the art pipeline — the one suite that wants `localStorage`
 stubs it — so they run in the node environment in well under a second.
-
-The hook checks the whole project, not just staged files: tsc and eslint are
-project-wide by nature. It deliberately does not run AssetPack, so if you change
-`src/assets/` remember `pnpm assetpack` — CI verifies `assets.d.ts` is current.
 
 ## iOS (requires macOS + Xcode 26+)
 
@@ -73,7 +82,7 @@ pnpm ios:sync   # build web + copy into ios/ — rerun after EVERY web change
 pnpm ios:open   # open the Xcode project (SPM template — there is no .xcworkspace)
 ```
 
-In Xcode: select your signing team; bundle id is `com.tayfunturgut.bloom`
+In Xcode: select your signing team; bundle id is `com.tayfunturgut.sprout`
 (must match App Store Connect); Deployment Target is iOS 15.0.
 
 App icons/splash: put a 1024×1024 `assets/icon.png` (and optional 2732×2732
@@ -105,4 +114,5 @@ Archive → Distribute App ▸ App Store Connect. iPad is a separate review surf
 
 Device smoke checklist: splash → progress bar → board; status bar hidden; safe
 areas respected (notch + home indicator, both orientations); taps place pieces;
-backgrounding pauses the ticker; memory well under ~300 MB in Xcode's gauge.
+backgrounding pauses the ticker and every animation with it; memory well under
+~300 MB in Xcode's gauge.

@@ -1,7 +1,7 @@
 import { emptySaveState, saveStateSchema, type TSaveState } from "./schema";
 import { getStorage, setStorage } from "../../engine/storage";
 
-const STORAGE_KEY = "bloom:save";
+const STORAGE_KEY = "sprout:save";
 
 export const loadSaveState = (): TSaveState =>
   getStorage(STORAGE_KEY, saveStateSchema, emptySaveState());

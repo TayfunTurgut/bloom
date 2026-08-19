@@ -142,7 +142,7 @@ export class CGameController extends CContainer {
 
     if (import.meta.env.DEV) {
       Object.assign(window, {
-        __bloom: { store: this.store, app: this.engine.app },
+        __sprout: { store: this.store, app: this.engine.app },
       });
     }
   }
