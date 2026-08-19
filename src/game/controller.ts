@@ -1,3 +1,4 @@
+import { Container } from "pixi.js";
 import { CircularProgressBar } from "@pixi/ui";
 import config from "./config";
 import { COLOR_BACKGROUND, COLOR_GOAL_PROGRESS_FILL } from "./colors";
@@ -8,23 +9,35 @@ import { CGoalPanel } from "./components/goal/panel";
 import { CBoard } from "./components/board";
 import { CEffects } from "./components/fx";
 import { CTray } from "./components/tray";
+import { CLeafCounter } from "./components/leaf";
+import { CLevelEndOverlay } from "./components/win";
+import { createBackground } from "./components/background";
 import { CCELL_HEIGHT, CCELL_WIDTH } from "./components/cell";
 import { fromSnapshot, toSnapshot } from "./model/serialize";
 import { CGameStore } from "./model/store";
-import type { TMoveReport } from "./model/resolve";
-import type { TGameState } from "./model/types";
+import {
+  createInitialState,
+  isLevelFailed,
+  isLevelWon,
+  milestonesReached,
+} from "./model/rules";
+import type { TGameState, TMoveReport } from "./model/types";
 import { saveSaveState, loadSaveState } from "./state";
+import { loadProfile, saveProfile } from "./state/profile";
 import type { AssetKey } from "../assetpack/assets";
-import { createInitialState } from "./model/rules";
 
 const STATIC_ASSET_KEYS: readonly AssetKey[] = [
   "game-grid-bg",
   "bottom-bar",
   "top-game-bar",
   "pieces-needed-bg",
+  "background_seamless",
   "Baloo2-Bold",
   "Baloo2-Regular",
 ];
+
+const WRAP_BONUS_LEAVES = 50;
+const LEVEL_END_DELAY_MS = 800;
 
 export class CGameController extends CContainer {
   private store!: CGameStore;
@@ -32,6 +45,11 @@ export class CGameController extends CContainer {
   private board!: CBoard;
   private tray!: CTray;
   private effects!: CEffects;
+  private leafCounter!: CLeafCounter;
+  private levelContainer!: Container;
+  private overlay: CLevelEndOverlay | null = null;
+  private unsubscribe: (() => void) | null = null;
+  private profile = loadProfile();
 
   constructor(private readonly engine: IEngine<AssetKey>) {
     super();
@@ -59,48 +77,81 @@ export class CGameController extends CContainer {
       progressBar,
     );
 
-    await assets.load(["hud", "pieces", ...STATIC_ASSET_KEYS], (progress) => {
-      progressBar.progress = progress * 100;
-    });
+    await assets.load(
+      ["hud", "pieces", "anim", ...STATIC_ASSET_KEYS],
+      (progress) => {
+        progressBar.progress = progress * 100;
+      },
+    );
     progressBar.destroy();
+
+    app.stage.addChild(createBackground(app));
+    onResize(app, (w, h) => this.onResize(w, h), this.container);
+    app.stage.addChild(this.container);
+
+    this.leafCounter = new CLeafCounter(this.profile.leaves);
 
     const save = loadSaveState();
     const currentLevel = save.level % config.levels.length;
     const level = config.levels[currentLevel];
     const restored = fromSnapshot(save, currentLevel, level);
-    this.createGameContainer(
-      restored ?? createInitialState(currentLevel, level),
+    this.startLevel(
+      restored ?? createInitialState(currentLevel, level, devSeed()),
     );
   }
 
-  private createGameContainer(state: TGameState) {
-    const app = this.engine.app;
-    onResize(app, (w, h) => this.onResize(w, h), this.container);
+  private startLevel(state: TGameState) {
+    this.levelContainer = new Container();
+    this.container.addChild(this.levelContainer);
+    this.container.addChild(this.leafCounter.container);
 
     this.store = new CGameStore(state);
 
     this.panel = new CGoalPanel(state);
-    this.container.addChild(this.panel.container);
+    this.levelContainer.addChild(this.panel.container);
 
     this.board = new CBoard(state);
     this.board.on("board:cellClicked", ({ x, y }) => this.store.place(x, y));
-    this.container.addChild(this.board.container);
-
-    this.effects = new CEffects(this.board.effectContainer);
+    this.levelContainer.addChild(this.board.container);
 
     this.tray = new CTray();
-    this.container.addChild(this.tray.container);
+    this.tray.on("tray:swapClicked", () => this.store.swapTray());
+    this.levelContainer.addChild(this.tray.container);
 
-    this.store.subscribe((next, report) => {
+    const overlayFx = new Container();
+    this.levelContainer.addChild(overlayFx);
+    this.effects = new CEffects(this.board.effectContainer, overlayFx);
+
+    this.unsubscribe = this.store.subscribe((next, report) => {
       this.render(next, report);
       saveSaveState(toSnapshot(next));
+      if (report) this.handleEffects(next, report);
     });
     this.render(state);
     saveSaveState(toSnapshot(state));
 
     this.layout(state.rows, state.columns);
 
-    app.stage.addChild(this.container);
+    if (isLevelWon(state)) {
+      this.showLevelEnd(true, milestonesReached(state));
+    } else if (isLevelFailed(state)) {
+      this.showLevelEnd(false, milestonesReached(state));
+    }
+
+    if (import.meta.env.DEV) {
+      Object.assign(window, { __bloom: { store: this.store } });
+    }
+  }
+
+  private endLevel() {
+    this.unsubscribe?.();
+    this.unsubscribe = null;
+    this.overlay?.destroy();
+    this.overlay = null;
+    this.effects.destroy();
+    this.tray.destroy();
+    this.board.destroy();
+    this.levelContainer.destroy({ children: true });
   }
 
   private render(state: TGameState, report?: TMoveReport) {
@@ -110,6 +161,56 @@ export class CGameController extends CContainer {
     if (report) {
       this.effects.play(report, (cell) => this.board.positionOfCell(cell));
     }
+  }
+
+  private handleEffects(state: TGameState, report: TMoveReport) {
+    for (const effect of report.effects) {
+      if (effect.type === "MILESTONE_REACHED") {
+        this.profile = { ...this.profile, leaves: this.profile.leaves + 1 };
+        saveProfile(this.profile);
+        const from = this.container.toLocal(
+          this.panel.pipGlobalPosition(effect.index),
+        );
+        this.leafCounter.award(this.profile.leaves, from);
+      } else if (effect.type === "TRAY_SWAPPED") {
+        this.tray.playSwap(effect.a, effect.b);
+      } else if (effect.type === "LEVEL_WON") {
+        this.scheduleLevelEnd(true, effect.milestones);
+      } else if (effect.type === "LEVEL_FAILED") {
+        this.scheduleLevelEnd(false, milestonesReached(state));
+      }
+    }
+  }
+
+  private scheduleLevelEnd(won: boolean, milestones: number) {
+    window.setTimeout(
+      () => this.showLevelEnd(won, milestones),
+      LEVEL_END_DELAY_MS,
+    );
+  }
+
+  private showLevelEnd(won: boolean, milestones: number) {
+    if (this.overlay) return;
+    const overlay = new CLevelEndOverlay(won, milestones);
+    this.overlay = overlay;
+    this.levelContainer.addChild(overlay.container);
+    overlay.once("levelEnd:continue", () => this.advanceLevel());
+  }
+
+  private advanceLevel() {
+    let next = this.store.state.level + 1;
+    if (next >= config.levels.length) {
+      next = 0;
+      this.profile = {
+        ...this.profile,
+        leaves: this.profile.leaves + WRAP_BONUS_LEAVES,
+      };
+      saveProfile(this.profile);
+      this.leafCounter.setCount(this.profile.leaves);
+    }
+    this.endLevel();
+    const state = createInitialState(next, config.levels[next], devSeed());
+    this.startLevel(state);
   }
 
   private layout(rows: number, columns: number) {
@@ -155,3 +256,9 @@ export class CGameController extends CContainer {
     );
   }
 }
+
+const devSeed = (): number | undefined => {
+  if (!import.meta.env.DEV) return undefined;
+  const value = new URLSearchParams(window.location.search).get("seed");
+  return value === null ? undefined : Number(value) | 0;
+};

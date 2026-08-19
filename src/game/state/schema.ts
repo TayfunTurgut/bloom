@@ -1,32 +1,17 @@
 import { z } from "zod";
 import type { AssetKey } from "../../assetpack/assets";
-import { BLOCKER_KINDS } from "../model/types";
 
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 const assetKeySchema = z.custom<AssetKey>((v) => typeof v === "string");
 
 const pieceSchema = z.object({
   id: z.number().int().min(1),
   assetKey: assetKeySchema,
-  type: z.enum(["BLOOM", "SUPPLY"]),
-  startingValue: z.number().int(),
-  currentValue: z.number().int(),
+  type: z.enum(["SEED", "BLOOM", "SUPPLY"]),
+  startingValue: z.number().int().min(1),
+  currentValue: z.number().int().min(0),
 });
-
-const layerSchema = z.discriminatedUnion("kind", [
-  z.object({
-    id: z.number().int().min(1),
-    kind: z.literal("PIECE"),
-    piece: pieceSchema,
-  }),
-  z.object({
-    id: z.number().int().min(1),
-    kind: z.enum(BLOCKER_KINDS),
-    hits: z.number().int().min(1),
-    maxHits: z.number().int().min(1),
-  }),
-]);
 
 const goalSchema = z.object({
   type: assetKeySchema,
@@ -41,16 +26,14 @@ export const saveStateSchema = z.object({
   score: z.number().int().min(0),
   rng: z.number().int(),
   nextPieceId: z.number().int().min(1),
-  nextLayerId: z.number().int().min(1),
   goals: z.array(goalSchema),
   columns: z.number().int().min(1),
-  board: z.array(z.array(layerSchema)),
+  board: z.array(pieceSchema.nullable()),
   tray: z.array(pieceSchema),
 });
 
 export type TSaveState = z.infer<typeof saveStateSchema>;
 export type TPieceSnapshot = z.infer<typeof pieceSchema>;
-export type TLayerSnapshot = z.infer<typeof layerSchema>;
 
 export const emptySaveState = (): TSaveState => ({
   version: SAVE_VERSION,
@@ -59,7 +42,6 @@ export const emptySaveState = (): TSaveState => ({
   score: 0,
   rng: 0,
   nextPieceId: 1,
-  nextLayerId: 1,
   goals: [],
   columns: 1,
   board: [],

@@ -1,16 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { createInitialState, placeFromTray, type TLevel } from "./rules";
 import { fromSnapshot, toSnapshot } from "./serialize";
-import { pieceIn } from "./layers";
 import { emptySaveState, saveStateSchema } from "../state/schema";
 import { cellIdFromXY } from "../id";
 
-const APPLE = "apple_half/happy";
-const CARROT = "carrot/happy";
+const APPLE = "apple_happy";
+const CARROT = "carrot_happy";
 
 const cell = (over: Partial<TLevel["data"][number]> = {}) => ({
   type: "FILLED" as const,
-  layers: [],
   ...over,
 });
 
@@ -28,19 +26,17 @@ const holedLevel: TLevel = {
   ),
 };
 
-const vinedLevel: TLevel = {
+const authoredLevel: TLevel = {
   ...level,
   data: level.data.map((entry, index) =>
-    index === 8
-      ? cell({ piece: CARROT, layers: [{ kind: "VINE", hits: 2 }] })
-      : entry,
+    index === 8 ? cell({ piece: CARROT, value: 6 }) : entry,
   ),
 };
 
 const played = () => {
   const state = createInitialState(0, level, 999);
   placeFromTray(state, 1, 1);
-  placeFromTray(state, 1, 2);
+  placeFromTray(state, 2, 2);
   return state;
 };
 
@@ -49,14 +45,18 @@ describe("toSnapshot", () => {
     expect(saveStateSchema.safeParse(toSnapshot(played())).success).toBe(true);
   });
 
-  it("accepts a flower that a drain took below zero", () => {
+  it("rejects a flower with a negative value, which the rules forbid", () => {
     const state = played();
-    const drained = [...state.board.values()]
-      .map(pieceIn)
-      .find((piece) => piece !== null);
-    drained!.currentValue = -11;
+    state.tray[0].currentValue = -1;
 
-    expect(saveStateSchema.safeParse(toSnapshot(state)).success).toBe(true);
+    expect(saveStateSchema.safeParse(toSnapshot(state)).success).toBe(false);
+  });
+
+  it("rejects an unknown flower type", () => {
+    const snapshot = toSnapshot(played());
+    (snapshot.tray[0] as { type: string }).type = "WEED";
+
+    expect(saveStateSchema.safeParse(snapshot).success).toBe(false);
   });
 
   it("writes one board entry per cell, row-major", () => {
@@ -65,8 +65,8 @@ describe("toSnapshot", () => {
 
     const snapshot = toSnapshot(state);
     expect(snapshot.board).toHaveLength(9);
-    expect(snapshot.board[2]).toHaveLength(1);
-    expect(snapshot.board.filter((stack) => stack.length > 0)).toHaveLength(1);
+    expect(snapshot.board[2]).not.toBeNull();
+    expect(snapshot.board.filter((piece) => piece !== null)).toHaveLength(1);
   });
 });
 
@@ -129,10 +129,7 @@ describe("fromSnapshot", () => {
     const restored = fromSnapshot(snapshot, 0, level);
     const ids = [
       ...snapshot.tray,
-      ...snapshot.board
-        .flat()
-        .filter((layer) => layer.kind === "PIECE")
-        .map((layer) => layer.piece),
+      ...snapshot.board.filter((piece) => piece !== null),
     ].map((piece) => piece.id);
     expect(restored!.nextPieceId).toBeGreaterThan(Math.max(...ids));
   });
@@ -152,68 +149,25 @@ describe("a level with holes", () => {
   });
 
   it("rejects a save holding a flower where the level now has a hole", () => {
-    const snapshot = toSnapshot(played());
-    expect(snapshot.board[4]).toHaveLength(1);
+    const state = createInitialState(0, level, 999);
+    placeFromTray(state, 1, 1);
 
-    expect(fromSnapshot(snapshot, 0, holedLevel)).toBeNull();
+    expect(fromSnapshot(toSnapshot(state), 0, holedLevel)).toBeNull();
   });
 });
 
-describe("a board carrying layers", () => {
-  const vined = () => {
-    const state = createInitialState(0, vinedLevel, 999);
+describe("an authored vined bloom", () => {
+  it("round-trips its type and value", () => {
+    const state = createInitialState(0, authoredLevel, 999);
     placeFromTray(state, 0, 0);
-    return state;
-  };
 
-  it("round-trips a stack, its hits and the flower under it", () => {
-    const state = vined();
-    const snapshot = toSnapshot(state);
+    const restored = fromSnapshot(toSnapshot(state), 0, authoredLevel);
 
-    expect(snapshot.board[8].map((layer) => layer.kind)).toEqual([
-      "PIECE",
-      "VINE",
-    ]);
-    const restored = fromSnapshot(snapshot, 0, vinedLevel);
     expect(restored).not.toBeNull();
-    expect(toSnapshot(restored!)).toEqual(snapshot);
-  });
-
-  it("keeps a cover the player already chipped, rather than re-authoring it", () => {
-    const state = vined();
-    placeFromTray(state, 2, 1);
-
-    const restored = fromSnapshot(toSnapshot(state), 0, vinedLevel);
-
-    const layers = restored!.board.get(cellIdFromXY(2, 2))!.layers;
-    expect(layers.at(-1)).toMatchObject({ kind: "VINE", hits: 1, maxHits: 2 });
-  });
-
-  it("never hands a restored layer an id that is already in play", () => {
-    const snapshot = toSnapshot(vined());
-    snapshot.nextLayerId = 1;
-
-    const restored = fromSnapshot(snapshot, 0, vinedLevel);
-    const ids = snapshot.board.flat().map((layer) => layer.id);
-    expect(restored!.nextLayerId).toBeGreaterThan(Math.max(...ids));
-  });
-
-  it("rejects a save holding a stack where the level now has a hole", () => {
-    const holedAtEight: TLevel = {
-      ...vinedLevel,
-      data: vinedLevel.data.map((entry, index) =>
-        index === 8 ? cell({ type: "EMPTY" }) : entry,
-      ),
-    };
-
-    expect(fromSnapshot(toSnapshot(vined()), 0, holedAtEight)).toBeNull();
-  });
-
-  it("rejects a cover of a kind the game no longer knows", () => {
-    const snapshot = toSnapshot(vined());
-    (snapshot.board[8][1] as { kind: string }).kind = "BRAMBLE";
-
-    expect(saveStateSchema.safeParse(snapshot).success).toBe(false);
+    const piece = restored!.board.get(cellIdFromXY(2, 2))!.piece;
+    expect(piece?.type).toBe("BLOOM");
+    expect(piece?.currentValue).toBe(6);
+    expect(toSnapshot(restored!)).toEqual(toSnapshot(state));
   });
 });
 
@@ -222,9 +176,9 @@ describe("an older save file", () => {
     expect(saveStateSchema.safeParse({ level: 0 }).success).toBe(false);
   });
 
-  it("rejects a v1 save, whose board was one piece per cell", () => {
-    const v1 = { ...toSnapshot(played()), version: 1, board: [null, null] };
+  it("rejects a v2 save, whose board was a stack of layers per cell", () => {
+    const v2 = { ...toSnapshot(played()), version: 2, board: [[], []] };
 
-    expect(saveStateSchema.safeParse(v1).success).toBe(false);
+    expect(saveStateSchema.safeParse(v2).success).toBe(false);
   });
 });

@@ -1,7 +1,7 @@
 import type { AssetKey } from "../../assetpack/assets";
 import type { CellId } from "../id";
 
-export type TFlowerType = "BLOOM" | "SUPPLY";
+export type TFlowerType = "SEED" | "BLOOM" | "SUPPLY";
 
 export type TPiece = {
   id: number;
@@ -11,25 +11,7 @@ export type TPiece = {
   currentValue: number;
 };
 
-export const BLOCKER_KINDS = ["VINE", "STONE"] as const;
-export type TBlockerKind = (typeof BLOCKER_KINDS)[number];
-
-type TLayerBase = { id: number };
-
-export type TPieceLayer = TLayerBase & { kind: "PIECE"; piece: TPiece };
-
-export type TBlockerLayer = TLayerBase & {
-  kind: TBlockerKind;
-  hits: number;
-  maxHits: number;
-};
-
-export type TLayer = TPieceLayer | TBlockerLayer;
-export type TLayerKind = TLayer["kind"];
-
-export type TBlockerSpec = { kind: TBlockerKind; hits: number };
-
-export type TCell = { layers: TLayer[] };
+export type TCell = { piece: TPiece | null };
 
 export type TGoal = {
   type: AssetKey;
@@ -46,8 +28,35 @@ export type TGameState = {
   pieces: readonly AssetKey[];
   rng: number;
   nextPieceId: number;
-  nextLayerId: number;
   goals: TGoal[];
   board: Map<CellId, TCell>;
   tray: TPiece[];
 };
+
+export type TEffect =
+  | { type: "PIECE_PLACED"; cell: CellId; pieceId: number }
+  | { type: "BLOOMED"; cell: CellId; pieceId: number; value: number }
+  | {
+      type: "DRAINED";
+      from: CellId;
+      to: CellId;
+      supplyId: number;
+      targetId: number;
+      assetKey: AssetKey;
+      amount: number;
+      remaining: number;
+    }
+  | {
+      type: "POPPED";
+      cell: CellId;
+      pieceId: number;
+      assetKey: AssetKey;
+      flower: "BLOOM" | "SUPPLY";
+    }
+  | { type: "SCORED"; amount: number; total: number }
+  | { type: "MILESTONE_REACHED"; index: number }
+  | { type: "TRAY_SWAPPED"; a: number; b: number }
+  | { type: "LEVEL_WON"; milestones: number }
+  | { type: "LEVEL_FAILED" };
+
+export type TMoveReport = { moves: number; effects: TEffect[] };

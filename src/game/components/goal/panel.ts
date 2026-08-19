@@ -24,13 +24,17 @@ export class CGoalPanel extends CContainer<
 
     this.createBackground();
     this.createGoalItems(state.goals);
-    this.createHud();
+    this.createHud(state);
     this.createLevelText(state.level);
   }
 
   render(state: TGameState) {
-    this.hud.render(state.moves);
+    this.hud.render(state);
     state.goals.forEach((goal, index) => this.items[index]?.render(goal));
+  }
+
+  pipGlobalPosition(index: number) {
+    return this.hud.pipGlobalPosition(index);
   }
 
   private createBackground() {
@@ -56,11 +60,11 @@ export class CGoalPanel extends CContainer<
     });
   }
 
-  private createHud() {
+  private createHud(state: TGameState) {
     const background = this.getChildByLabel("background");
-    const hud = new CGoalHud();
+    const hud = new CGoalHud(state);
     const scale = background.height / hud.container.height;
-    hud.container.scale.set(scale * 0.55);
+    hud.container.scale.set(scale * 0.72);
     hud.container.position.set(0, -background.height * 0.075);
     this.addNamedChild("hud", hud.container);
     this.hud = hud;

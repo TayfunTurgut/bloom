@@ -1,13 +1,10 @@
 import { Container } from "pixi.js";
 import { CCell, CCELL_HEIGHT, CCELL_WIDTH } from "./cell";
-import { CLayer } from "./layer";
-import { CPiece } from "./piece";
+import type { CPiece } from "./piece";
 import { syncPieceViews, type TPiecePlacement } from "./pieces";
-import { syncViews, type TViewEntry } from "./sync";
 import { CContainer, type TNone } from "../../engine/container";
 import { cellIdFromXY, xyFromCellId, type CellId } from "../id";
-import { blocksAdjacency } from "../model/layers";
-import type { TBlockerLayer, TGameState } from "../model/types";
+import type { TGameState } from "../model/types";
 
 export type TBoardEvents = {
   "board:cellClicked": [{ x: number; y: number }];
@@ -18,10 +15,8 @@ export class CBoard extends CContainer<TNone, TBoardEvents> {
   private readonly columns: number;
   private readonly playable: ReadonlySet<CellId>;
   private readonly pieces = new Map<number, CPiece>();
-  private readonly layers = new Map<number, CLayer>();
   private readonly soilContainer = new Container();
   private readonly pieceContainer = new Container();
-  private readonly layerContainer = new Container();
   readonly effectContainer = new Container();
 
   constructor(state: TGameState) {
@@ -34,7 +29,6 @@ export class CBoard extends CContainer<TNone, TBoardEvents> {
     this.container.addChild(
       this.soilContainer,
       this.pieceContainer,
-      this.layerContainer,
       this.effectContainer,
     );
     this.createCells();
@@ -42,37 +36,28 @@ export class CBoard extends CContainer<TNone, TBoardEvents> {
 
   render(state: TGameState) {
     const placements: TPiecePlacement[] = [];
-    const covers: TViewEntry<TBlockerLayer>[] = [];
 
     for (let y = 0; y < this.rows; y++) {
       for (let x = 0; x < this.columns; x++) {
         const cell = state.board.get(cellIdFromXY(x, y));
-        if (!cell) continue;
-        const at = this.positionOf(x, y);
-        const hidden = blocksAdjacency(cell);
-        for (const layer of cell.layers) {
-          if (layer.kind === "PIECE") {
-            if (!hidden) placements.push({ piece: layer.piece, ...at });
-            continue;
-          }
-          covers.push({ key: layer.id, datum: layer, ...at });
-        }
+        if (!cell?.piece) continue;
+        placements.push({ piece: cell.piece, ...this.positionOf(x, y) });
       }
     }
 
     syncPieceViews(this.pieces, this.pieceContainer, placements);
-    syncViews(
-      this.layers,
-      this.layerContainer,
-      covers,
-      (layer) => new CLayer(layer),
-    );
   }
 
   positionOfCell(cellId: CellId): { x: number; y: number } | null {
     if (!this.playable.has(cellId)) return null;
     const { x, y } = xyFromCellId(cellId);
     return this.positionOf(x, y);
+  }
+
+  destroy() {
+    for (const view of this.pieces.values()) view.destroy();
+    this.pieces.clear();
+    this.container.destroy({ children: true });
   }
 
   private createCells() {

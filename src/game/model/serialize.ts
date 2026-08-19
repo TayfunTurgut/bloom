@@ -1,19 +1,18 @@
 import { cellIdFromXY, type CellId } from "../id";
 import {
   SAVE_VERSION,
-  type TLayerSnapshot,
   type TPieceSnapshot,
   type TSaveState,
 } from "../state/schema";
 import type { TLevel } from "./rules";
-import type { TCell, TGameState, TLayer } from "./types";
+import type { TCell, TGameState } from "./types";
 
 export const toSnapshot = (state: TGameState): TSaveState => {
-  const board: TLayerSnapshot[][] = [];
+  const board: (TPieceSnapshot | null)[] = [];
   for (let y = 0; y < state.rows; y++) {
     for (let x = 0; x < state.columns; x++) {
       const cell = state.board.get(cellIdFromXY(x, y));
-      board.push(cell ? cell.layers.map(copyLayer) : []);
+      board.push(cell?.piece ? { ...cell.piece } : null);
     }
   }
 
@@ -24,7 +23,6 @@ export const toSnapshot = (state: TGameState): TSaveState => {
     score: state.score,
     rng: state.rng,
     nextPieceId: state.nextPieceId,
-    nextLayerId: state.nextLayerId,
     goals: state.goals.map((goal) => ({ ...goal })),
     columns: state.columns,
     board,
@@ -54,7 +52,9 @@ export const fromSnapshot = (
   if (!goalsMatch) return null;
 
   const pool = new Set<string>(level.pieces);
-  const boardPieces = snapshot.board.flatMap(piecesIn);
+  const boardPieces = snapshot.board.filter(
+    (piece): piece is TPieceSnapshot => piece !== null,
+  );
   const pieces = [...snapshot.tray, ...boardPieces];
   if (!pieces.every((piece) => pool.has(piece.assetKey))) return null;
 
@@ -62,12 +62,12 @@ export const fromSnapshot = (
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < columns; x++) {
       const index = y * columns + x;
-      const stack = snapshot.board[index];
+      const piece = snapshot.board[index];
       if (level.data[index].type === "EMPTY") {
-        if (stack.length > 0) return null;
+        if (piece !== null) return null;
         continue;
       }
-      board.set(cellIdFromXY(x, y), { layers: stack.map(copyLayer) });
+      board.set(cellIdFromXY(x, y), { piece: piece ? { ...piece } : null });
     }
   }
 
@@ -83,22 +83,8 @@ export const fromSnapshot = (
       (max, piece) => Math.max(max, piece.id + 1),
       snapshot.nextPieceId,
     ),
-    nextLayerId: snapshot.board
-      .flat()
-      .reduce(
-        (max, layer) => Math.max(max, layer.id + 1),
-        snapshot.nextLayerId,
-      ),
     goals: snapshot.goals.map((goal) => ({ ...goal })),
     board,
     tray: snapshot.tray.map((piece) => ({ ...piece })),
   };
 };
-
-const piecesIn = (stack: TLayerSnapshot[]): TPieceSnapshot[] =>
-  stack.filter((layer) => layer.kind === "PIECE").map((layer) => layer.piece);
-
-const copyLayer = (layer: TLayer): TLayer =>
-  layer.kind === "PIECE"
-    ? { ...layer, piece: { ...layer.piece } }
-    : { ...layer };
