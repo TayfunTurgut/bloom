@@ -210,18 +210,20 @@ const harvest = (state: TGameState, cellId: CellId, effects: TEffect[]) => {
 
   advanceGoals(state, crop);
 
-  const previous = state.score;
-  state.score = Math.min(scoreMax(state), previous + crop.startingValue);
-  effects.push({
-    type: "SCORED",
-    amount: state.score - previous,
-    total: state.score,
-  });
-  milestoneThresholds(state).forEach((threshold, index) => {
-    if (previous < threshold && threshold <= state.score) {
-      effects.push({ type: "MILESTONE_REACHED", index });
-    }
-  });
+  if (state.goals.some((goal) => goal.type === crop.assetKey)) {
+    const previous = state.score;
+    state.score = Math.min(scoreMax(state), previous + crop.startingValue);
+    effects.push({
+      type: "SCORED",
+      amount: state.score - previous,
+      total: state.score,
+    });
+    milestoneThresholds(state).forEach((threshold, index) => {
+      if (previous < threshold && threshold <= state.score) {
+        effects.push({ type: "MILESTONE_REACHED", index });
+      }
+    });
+  }
 
   const { x, y } = xyFromCellId(cellId);
   for (const [dx, dy] of NEIGHBOR_OFFSETS) {

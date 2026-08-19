@@ -296,6 +296,42 @@ describe("harvesting a crop", () => {
     ]);
   });
 
+  it("awards no score for a crop outside the goals", () => {
+    const state = createInitialState(0, level, SEED);
+
+    stack(state, { assetKey: CARROT, currentValue: 4 });
+    placeFromTray(state, 1, 1);
+    stack(state, { assetKey: CARROT, currentValue: 4 });
+    const report = placeFromTray(state, 1, 0);
+
+    expect(at(state, 1, 1)).toBeNull();
+    expect(state.score).toBe(0);
+    expect(
+      report?.effects.some(
+        (effect) =>
+          effect.type === "SCORED" || effect.type === "MILESTONE_REACHED",
+      ),
+    ).toBe(false);
+  });
+
+  it("orders a move's effects as placement, feed, then the harvest cluster", () => {
+    const state = createInitialState(0, level, SEED);
+
+    stack(state, { currentValue: 5 });
+    placeFromTray(state, 0, 0);
+    stack(state, { currentValue: 12 });
+    const report = placeFromTray(state, 1, 0);
+
+    expect(report?.effects.map((effect) => effect.type)).toEqual([
+      "PIECE_PLACED",
+      "FED",
+      "HARVESTED",
+      "SCORED",
+      "MILESTONE_REACHED",
+      "HARVESTED",
+    ]);
+  });
+
   it("harvests adjacent supplies without goal or score credit", () => {
     const state = createInitialState(0, level, SEED);
     const goal = state.goals[0];
