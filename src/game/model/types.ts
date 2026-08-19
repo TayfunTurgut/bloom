@@ -1,12 +1,12 @@
 import type { AssetKey } from "../../assetpack/assets";
 import type { CellId } from "../id";
 
-export type TFlowerType = "SEED" | "BLOOM" | "SUPPLY";
+export type TCropState = "SEED" | "GROWING" | "SUPPLY";
 
 export type TPiece = {
   id: number;
   assetKey: AssetKey;
-  type: TFlowerType;
+  type: TCropState;
   startingValue: number;
   currentValue: number;
 };
@@ -35,9 +35,9 @@ export type TGameState = {
 
 export type TEffect =
   | { type: "PIECE_PLACED"; cell: CellId; pieceId: number }
-  | { type: "BLOOMED"; cell: CellId; pieceId: number; value: number }
+  | { type: "SPROUTED"; cell: CellId; pieceId: number; value: number }
   | {
-      type: "DRAINED";
+      type: "FED";
       from: CellId;
       to: CellId;
       supplyId: number;
@@ -47,11 +47,11 @@ export type TEffect =
       remaining: number;
     }
   | {
-      type: "POPPED";
+      type: "HARVESTED";
       cell: CellId;
       pieceId: number;
       assetKey: AssetKey;
-      flower: "BLOOM" | "SUPPLY";
+      crop: "GROWING" | "SUPPLY";
     }
   | { type: "SCORED"; amount: number; total: number }
   | { type: "MILESTONE_REACHED"; index: number }

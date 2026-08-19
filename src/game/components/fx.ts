@@ -5,10 +5,9 @@ import {
   Sprite,
   Texture,
 } from "pixi.js";
-import { animate } from "motion";
 import { getAsset } from "../assets";
 import { CCELL_WIDTH } from "./cell";
-import { CAnimations } from "./motion";
+import { CAnimations, tween } from "./motion";
 import config from "../config";
 import type { AssetKey } from "../../assetpack/assets";
 import type { CellId } from "../id";
@@ -49,19 +48,19 @@ export class CEffects {
   play(report: TMoveReport, positionOf: (cell: CellId) => TPoint | null) {
     let index = 0;
     for (const effect of report.effects) {
-      if (effect.type === "DRAINED") {
+      if (effect.type === "FED") {
         const from = positionOf(effect.from);
         const to = positionOf(effect.to);
-        if (from && to) this.drain(effect.assetKey, effect.amount, from, to);
+        if (from && to) this.feed(effect.assetKey, effect.amount, from, to);
         continue;
       }
-      if (effect.type !== "POPPED") continue;
+      if (effect.type !== "HARVESTED") continue;
       const at = positionOf(effect.cell);
       if (!at) continue;
       const delay = index * EFFECT_STAGGER;
       index += 1;
       this.vanish(at, delay);
-      if (effect.flower === "BLOOM") this.rain(effect.assetKey, at, delay);
+      if (effect.crop === "GROWING") this.rain(effect.assetKey, at, delay);
     }
   }
 
@@ -73,7 +72,7 @@ export class CEffects {
     this.emitters.clear();
   }
 
-  private drain(assetKey: AssetKey, amount: number, from: TPoint, to: TPoint) {
+  private feed(assetKey: AssetKey, amount: number, from: TPoint, to: TPoint) {
     const texture = getAsset<Texture>(assetKey);
     const scale = DRAIN_SIZE / Math.max(texture.width, texture.height);
     for (let index = 0; index < amount; index++) {
@@ -88,7 +87,7 @@ export class CEffects {
       const startX = from.x + Math.cos(angle) * radius;
       const startY = from.y + Math.sin(angle) * radius;
 
-      const controls = animate(0, 1, {
+      const controls = tween(0, 1, {
         duration: DRAIN_DURATION,
         delay: index * DRAIN_STAGGER,
         ease: "easeIn",
@@ -114,7 +113,7 @@ export class CEffects {
     sprite.visible = false;
     this.boardFx.addChild(sprite);
 
-    const controls = animate(0, VANISH_KEYS.length - 1, {
+    const controls = tween(0, VANISH_KEYS.length - 1, {
       duration: VANISH_DURATION,
       delay,
       ease: "linear",
@@ -153,7 +152,7 @@ export class CEffects {
       const startY = particle.y;
       const startRotation = particle.rotation;
 
-      const controls = animate(0, 1, {
+      const controls = tween(0, 1, {
         duration: RAIN_DURATION * (0.75 + Math.random() * 0.5),
         delay: delay + Math.random() * 0.15,
         ease: "linear",

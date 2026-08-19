@@ -15,7 +15,7 @@ export type TLevel = TConfig["levels"][number];
 export const TRAY_SIZE = 3;
 export const PIECE_VALUE_MIN = 1;
 export const PIECE_VALUE_MAX = 12;
-export const SCORE_PER_GOAL_FLOWER = 5;
+export const SCORE_PER_GOAL_CROP = 5;
 export const MILESTONE_COUNT = 3;
 
 export const createInitialState = (
@@ -52,7 +52,7 @@ export const createInitialState = (
       const cell: TCell = { piece: null };
       if (spec.piece) {
         const piece = createPiece(state, spec.piece, spec.value);
-        piece.type = "BLOOM";
+        piece.type = "GROWING";
         cell.piece = piece;
       }
       state.board.set(cellIdFromXY(x, y), cell);
@@ -86,11 +86,11 @@ export const placeFromTray = (
   cell.piece = piece;
   effects.push({ type: "PIECE_PLACED", cell: cellId, pieceId: piece.id });
 
-  const neighbors = vinedNeighborsOf(state, x, y);
+  const neighbors = growingNeighborsOf(state, x, y);
   if (neighbors.length === 0) {
-    piece.type = "BLOOM";
+    piece.type = "GROWING";
     effects.push({
-      type: "BLOOMED",
+      type: "SPROUTED",
       cell: cellId,
       pieceId: piece.id,
       value: piece.currentValue,
@@ -106,7 +106,7 @@ export const placeFromTray = (
     );
     target.piece.currentValue = remaining;
     effects.push({
-      type: "DRAINED",
+      type: "FED",
       from: cellId,
       to: target.cell,
       supplyId: piece.id,
@@ -115,7 +115,7 @@ export const placeFromTray = (
       amount: piece.currentValue,
       remaining,
     });
-    if (remaining === 0) popBloom(state, target.cell, effects);
+    if (remaining === 0) harvest(state, target.cell, effects);
   }
 
   state.moves += 1;
@@ -163,10 +163,7 @@ export const isLevelFailed = (state: TGameState): boolean =>
   [...state.board.values()].every((cell) => cell.piece !== null);
 
 export const scoreMax = (state: TGameState): number =>
-  state.goals.reduce(
-    (sum, goal) => sum + goal.target * SCORE_PER_GOAL_FLOWER,
-    0,
-  );
+  state.goals.reduce((sum, goal) => sum + goal.target * SCORE_PER_GOAL_CROP, 0);
 
 export const milestoneThresholds = (state: TGameState): number[] => {
   const max = scoreMax(state);
@@ -179,13 +176,13 @@ export const milestonesReached = (state: TGameState): number =>
   milestoneThresholds(state).filter((threshold) => state.score >= threshold)
     .length;
 
-export const bloomAt = (
+export const growingAt = (
   state: TGameState,
   x: number,
   y: number,
 ): TPiece | null => {
   const piece = state.board.get(cellIdFromXY(x, y))?.piece;
-  return piece && piece.type === "BLOOM" && piece.currentValue > 0
+  return piece && piece.type === "GROWING" && piece.currentValue > 0
     ? piece
     : null;
 };
@@ -197,24 +194,24 @@ const NEIGHBOR_OFFSETS: readonly [number, number][] = [
   [0, 1],
 ];
 
-const popBloom = (state: TGameState, cellId: CellId, effects: TEffect[]) => {
+const harvest = (state: TGameState, cellId: CellId, effects: TEffect[]) => {
   const cell = state.board.get(cellId);
-  const bloom = cell?.piece;
-  if (!cell || !bloom) return;
+  const crop = cell?.piece;
+  if (!cell || !crop) return;
 
   cell.piece = null;
   effects.push({
-    type: "POPPED",
+    type: "HARVESTED",
     cell: cellId,
-    pieceId: bloom.id,
-    assetKey: bloom.assetKey,
-    flower: "BLOOM",
+    pieceId: crop.id,
+    assetKey: crop.assetKey,
+    crop: "GROWING",
   });
 
-  advanceGoals(state, bloom);
+  advanceGoals(state, crop);
 
   const previous = state.score;
-  state.score = Math.min(scoreMax(state), previous + bloom.startingValue);
+  state.score = Math.min(scoreMax(state), previous + crop.startingValue);
   effects.push({
     type: "SCORED",
     amount: state.score - previous,
@@ -234,11 +231,11 @@ const popBloom = (state: TGameState, cellId: CellId, effects: TEffect[]) => {
     if (!neighbor || !supply || supply.type !== "SUPPLY") continue;
     neighbor.piece = null;
     effects.push({
-      type: "POPPED",
+      type: "HARVESTED",
       cell: neighborId,
       pieceId: supply.id,
       assetKey: supply.assetKey,
-      flower: "SUPPLY",
+      crop: "SUPPLY",
     });
   }
 };
@@ -255,14 +252,14 @@ const createPiece = (
   currentValue: value,
 });
 
-const vinedNeighborsOf = (
+const growingNeighborsOf = (
   state: TGameState,
   x: number,
   y: number,
 ): { cell: CellId; piece: TPiece }[] => {
   const found: { cell: CellId; piece: TPiece }[] = [];
   for (const [dx, dy] of NEIGHBOR_OFFSETS) {
-    const piece = bloomAt(state, x + dx, y + dy);
+    const piece = growingAt(state, x + dx, y + dy);
     if (piece) found.push({ cell: cellIdFromXY(x + dx, y + dy), piece });
   }
   return found;

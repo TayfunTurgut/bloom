@@ -12,6 +12,7 @@ import { CTray } from "./components/tray";
 import { CLeafCounter } from "./components/leaf";
 import { CLevelEndOverlay } from "./components/win";
 import { createBackground } from "./components/background";
+import { bindAnimationsTo } from "./components/motion";
 import { CCELL_HEIGHT, CCELL_WIDTH } from "./components/cell";
 import { fromSnapshot, toSnapshot } from "./model/serialize";
 import { CGameStore } from "./model/store";
@@ -57,6 +58,7 @@ export class CGameController extends CContainer {
 
   async start() {
     const { app, assets } = this.engine;
+    bindAnimationsTo(app.ticker);
 
     const progressBar = new CircularProgressBar({
       backgroundColor: COLOR_BACKGROUND,
@@ -139,7 +141,9 @@ export class CGameController extends CContainer {
     }
 
     if (import.meta.env.DEV) {
-      Object.assign(window, { __bloom: { store: this.store } });
+      Object.assign(window, {
+        __bloom: { store: this.store, app: this.engine.app },
+      });
     }
   }
 
@@ -175,11 +179,18 @@ export class CGameController extends CContainer {
       } else if (effect.type === "TRAY_SWAPPED") {
         this.tray.playSwap(effect.a, effect.b);
       } else if (effect.type === "LEVEL_WON") {
+        this.lockInput();
         this.scheduleLevelEnd(true, effect.milestones);
       } else if (effect.type === "LEVEL_FAILED") {
+        this.lockInput();
         this.scheduleLevelEnd(false, milestonesReached(state));
       }
     }
+  }
+
+  private lockInput() {
+    this.board.container.eventMode = "none";
+    this.tray.container.eventMode = "none";
   }
 
   private scheduleLevelEnd(won: boolean, milestones: number) {

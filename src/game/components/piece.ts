@@ -1,11 +1,10 @@
 import { Sprite, Text, Texture } from "pixi.js";
-import { animate } from "motion";
 import { CContainer } from "../../engine/container";
 import { getAsset } from "../assets";
 import { CCELL_HEIGHT, CCELL_WIDTH } from "./cell";
-import { CAnimations } from "./motion";
+import { CAnimations, tween } from "./motion";
 import type { AssetKey } from "../../assetpack/assets";
-import type { TFlowerType, TPiece } from "../model/types";
+import type { TCropState, TPiece } from "../model/types";
 
 export const CPIECE_WIDTH = 80;
 export const CPIECE_HEIGHT = 80;
@@ -14,12 +13,12 @@ const SUPPLY_TINT = 0x777777;
 
 export class CPiece extends CContainer<{
   sprite: Sprite;
-  vine: Sprite;
+  growth: Sprite;
   value: Text;
 }> {
   readonly id: number;
   private drawnValue: number;
-  private drawnType: TFlowerType;
+  private drawnType: TCropState;
   private readonly animations = new CAnimations();
 
   constructor(piece: TPiece) {
@@ -38,11 +37,11 @@ export class CPiece extends CContainer<{
     sprite.scale.set(scale);
     this.addNamedChild("sprite", sprite);
 
-    const vine = new Sprite(
-      getAsset<Texture>(vineTextureFor(piece.currentValue)),
+    const growth = new Sprite(
+      getAsset<Texture>(growthTextureFor(piece.currentValue)),
     );
-    vine.anchor.set(0.5);
-    this.addNamedChild("vine", vine);
+    growth.anchor.set(0.5);
+    this.addNamedChild("growth", growth);
 
     const text = new Text({
       text: piece.currentValue,
@@ -62,12 +61,12 @@ export class CPiece extends CContainer<{
   }
 
   sync(piece: TPiece) {
-    const becameBloom = piece.type === "BLOOM" && this.drawnType !== "BLOOM";
+    const sprouted = piece.type === "GROWING" && this.drawnType !== "GROWING";
     const valueChanged = piece.currentValue !== this.drawnValue;
     this.drawnType = piece.type;
     this.drawnValue = piece.currentValue;
     this.apply(piece);
-    if (becameBloom || (valueChanged && piece.type === "BLOOM")) {
+    if (sprouted || (valueChanged && piece.type === "GROWING")) {
       this.popValue();
     }
   }
@@ -79,14 +78,14 @@ export class CPiece extends CContainer<{
 
   private apply(piece: TPiece) {
     const sprite = this.getChildByLabel("sprite");
-    const vine = this.getChildByLabel("vine");
+    const growth = this.getChildByLabel("growth");
     const text = this.getChildByLabel("value");
 
     sprite.tint = piece.type === "SUPPLY" ? SUPPLY_TINT : 0xffffff;
-    vine.visible = piece.type === "BLOOM" && piece.currentValue > 0;
-    if (vine.visible) {
-      vine.texture = getAsset<Texture>(vineTextureFor(piece.currentValue));
-      vine.setSize(CCELL_WIDTH, CCELL_HEIGHT);
+    growth.visible = piece.type === "GROWING" && piece.currentValue > 0;
+    if (growth.visible) {
+      growth.texture = getAsset<Texture>(growthTextureFor(piece.currentValue));
+      growth.setSize(CCELL_WIDTH, CCELL_HEIGHT);
     }
     text.visible = piece.type !== "SUPPLY";
     text.text = piece.currentValue;
@@ -94,7 +93,7 @@ export class CPiece extends CContainer<{
 
   private popValue() {
     const text = this.getChildByLabel("value");
-    const controls = animate(0, 1, {
+    const controls = tween(0, 1, {
       duration: 0.35,
       ease: "easeOut",
       onUpdate: (t) => {
@@ -105,7 +104,7 @@ export class CPiece extends CContainer<{
   }
 }
 
-const vineTextureFor = (value: number): AssetKey => {
+const growthTextureFor = (value: number): AssetKey => {
   if (value >= 10) return "block0";
   if (value >= 7) return "block1";
   if (value >= 4) return "block2";

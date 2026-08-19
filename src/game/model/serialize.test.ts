@@ -45,14 +45,14 @@ describe("toSnapshot", () => {
     expect(saveStateSchema.safeParse(toSnapshot(played())).success).toBe(true);
   });
 
-  it("rejects a flower with a negative value, which the rules forbid", () => {
+  it("rejects a crop with a negative value, which the rules forbid", () => {
     const state = played();
     state.tray[0].currentValue = -1;
 
     expect(saveStateSchema.safeParse(toSnapshot(state)).success).toBe(false);
   });
 
-  it("rejects an unknown flower type", () => {
+  it("rejects an unknown crop state", () => {
     const snapshot = toSnapshot(played());
     (snapshot.tray[0] as { type: string }).type = "WEED";
 
@@ -148,7 +148,7 @@ describe("a level with holes", () => {
     expect(toSnapshot(restored!)).toEqual(toSnapshot(state));
   });
 
-  it("rejects a save holding a flower where the level now has a hole", () => {
+  it("rejects a save holding a crop where the level now has a hole", () => {
     const state = createInitialState(0, level, 999);
     placeFromTray(state, 1, 1);
 
@@ -156,7 +156,7 @@ describe("a level with holes", () => {
   });
 });
 
-describe("an authored vined bloom", () => {
+describe("an authored growing crop", () => {
   it("round-trips its type and value", () => {
     const state = createInitialState(0, authoredLevel, 999);
     placeFromTray(state, 0, 0);
@@ -165,7 +165,7 @@ describe("an authored vined bloom", () => {
 
     expect(restored).not.toBeNull();
     const piece = restored!.board.get(cellIdFromXY(2, 2))!.piece;
-    expect(piece?.type).toBe("BLOOM");
+    expect(piece?.type).toBe("GROWING");
     expect(piece?.currentValue).toBe(6);
     expect(toSnapshot(restored!)).toEqual(toSnapshot(state));
   });
@@ -176,9 +176,9 @@ describe("an older save file", () => {
     expect(saveStateSchema.safeParse({ level: 0 }).success).toBe(false);
   });
 
-  it("rejects a v2 save, whose board was a stack of layers per cell", () => {
-    const v2 = { ...toSnapshot(played()), version: 2, board: [[], []] };
+  it("rejects a v3 save, whose crops were typed BLOOM", () => {
+    const v3 = { ...toSnapshot(played()), version: 3 };
 
-    expect(saveStateSchema.safeParse(v2).success).toBe(false);
+    expect(saveStateSchema.safeParse(v3).success).toBe(false);
   });
 });

@@ -1,14 +1,14 @@
 import { z } from "zod";
 import type { AssetKey } from "../../assetpack/assets";
 
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 
 const assetKeySchema = z.custom<AssetKey>((v) => typeof v === "string");
 
 const pieceSchema = z.object({
   id: z.number().int().min(1),
   assetKey: assetKeySchema,
-  type: z.enum(["SEED", "BLOOM", "SUPPLY"]),
+  type: z.enum(["SEED", "GROWING", "SUPPLY"]),
   startingValue: z.number().int().min(1),
   currentValue: z.number().int().min(0),
 });

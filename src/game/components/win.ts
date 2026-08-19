@@ -1,8 +1,7 @@
 import { Graphics, Sprite, Text, Texture } from "pixi.js";
-import { animate } from "motion";
 import { CContainer, type TNone } from "../../engine/container";
 import { getAsset } from "../assets";
-import { CAnimations } from "./motion";
+import { CAnimations, tween } from "./motion";
 import { COLOR_FONT_FILL_GREEN, COLOR_FONT_STROKE_GREEN } from "../colors";
 import config from "../config";
 import type { AssetKey } from "../../assetpack/assets";
@@ -59,7 +58,7 @@ export class CLevelEndOverlay extends CContainer<TNone, TLevelEndEvents> {
     );
     this.container.addChild(label);
 
-    const controls = animate(0, 1, {
+    const controls = tween(0, 1, {
       duration: 0.4,
       ease: "backOut",
       onUpdate: (t) => {

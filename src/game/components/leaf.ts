@@ -1,8 +1,7 @@
 import { Sprite, Text, Texture, type PointData } from "pixi.js";
-import { animate } from "motion";
 import { CContainer } from "../../engine/container";
 import { getAsset } from "../assets";
-import { CAnimations } from "./motion";
+import { CAnimations, tween, type TEase } from "./motion";
 import { COLOR_FONT_FILL_GRAY, COLOR_FONT_STROKE_GRAY } from "../colors";
 
 const COUNTER_X = 560;
@@ -10,8 +9,6 @@ const REST_Y = -60;
 const SHOWN_Y = 150;
 const LEAF_SIZE = 44;
 const HOLD_DURATION = 0.9;
-
-type TEase = "linear" | "easeIn" | "easeOut" | "easeInOut" | "backOut";
 
 export class CLeafCounter extends CContainer<{
   pill: Sprite;
@@ -111,7 +108,7 @@ export class CLeafCounter extends CContainer<{
     onUpdate: (t: number) => void,
   ): Promise<void> {
     return new Promise((resolve) => {
-      const controls = animate(0, 1, { duration, ease, onUpdate });
+      const controls = tween(0, 1, { duration, ease, onUpdate });
       this.animations.track(controls, resolve);
     });
   }

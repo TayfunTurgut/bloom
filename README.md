@@ -5,7 +5,7 @@ A PixiJS v8 puzzle game, packaged with Capacitor 8 for iPhone and iPad (iOS 15+)
 ## Structure
 
 - `src/engine/` — reusable, game-agnostic: app bootstrap (`createEngine`), typed
-  `Container` wrapper, observable `CStore`, on-demand manifest asset loader,
+  `Container` wrapper, observable `CStore`, manifest asset loader,
   resize/storage helpers, Capacitor platform glue. Future games build on this.
 - `src/game/model/` — the single source of truth: `TGameState` (board, tray,
   goals, score) as plain data, the rules that change it, and snapshot
@@ -15,32 +15,30 @@ A PixiJS v8 puzzle game, packaged with Capacitor 8 for iPhone and iPad (iOS 15+)
 - `src/assets/` — raw art/fonts (input); `public/assets/` is generated output (git-ignored).
 - `ios/` — Capacitor-generated Xcode project (SPM-based; committed).
 
-## Layered cells
+## Grow & harvest
 
-A board cell is a stack, bottom to top: a flower and any covers over it. Each
-cover kind has one entry in `LAYER_BEHAVIORS` (`model/layers.ts`) declaring
-whether it blocks placement, whether it hides what it covers, which triggers it
-wants, and a pure `react` returning an outcome — damage, clear, replace, or
-nothing. A vine thins when the player plays beside it; a stone slab erodes once
-per move wherever they play.
+A crop is a `TPiece` with a state: `SEED` in the tray, `GROWING` on the board
+under foliage (the overlay art thins as its remaining value drops), or `SUPPLY`
+once spent. Tapping an empty cell plays the rightmost tray crop. With no
+growing cardinal neighbour it sprouts and starts growing at its value;
+otherwise it becomes supply and feeds its value into the strongest growing
+neighbour — ties go left, feeds clamp at zero. A crop fed to zero is harvested:
+it credits its goal, scores its starting value toward the milestone ring, and
+takes its adjacent supplies with it. Harvesting never cascades into another
+growing crop. A level is won when every goal completes, and failed when the
+board fills first.
 
-That registry is a lookup table, deliberately not a subscription list. Ordering
-lives in `resolveLayers` (`model/resolve.ts`), which walks a fixed phase order
-and dispatches only to each cell's topmost layer, so resolution is
-deterministic and testable rather than dependent on the order listeners
-happened to attach.
+A move returns a `TMoveReport`: an ordered log of what happened (`SPROUTED`,
+`FED`, `HARVESTED`, `SCORED`, …). The state is still the whole truth of what
+the board _is_, and the views redraw from it alone; the report carries only
+the sequence, which a re-render cannot recover, and drives the effects and the
+controller's level-flow orchestration.
 
-A move returns a `TMoveReport`: an ordered log of what happened. The state is
-still the whole truth of what the board _is_, and the views redraw from it
-alone; the report carries only the sequence, which a re-render cannot recover,
-and only `components/fx.ts` reads it. Adding a cover kind means adding to
-`LAYER_BEHAVIORS` and `LAYER_VISUALS`, and TypeScript names both until you have.
-
-Effects are `motion` animating Pixi `Particle` objects inside a
-`ParticleContainer` — one container per cover kind, because a container batches
-a single texture and the kinds' art sits on different atlas pages. Motion runs
-its own rAF loop rather than `app.ticker`; that is fine for half-second bursts,
-but anything that must pause with the game belongs on the ticker instead.
+Every animation runs through `tween` in `components/motion.ts`, which hands
+`motion` a custom driver clocked by `app.ticker` — so stopping the ticker
+(backgrounding on iOS) freezes tweens and particles too, and they resume where
+they left off. Celebration rain uses one `ParticleContainer` per crop texture,
+because a container batches a single texture.
 
 ## Develop
 

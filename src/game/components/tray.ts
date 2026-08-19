@@ -1,10 +1,9 @@
 import { Sprite, Texture } from "pixi.js";
-import { animate } from "motion";
 import { CContainer, type TNone } from "../../engine/container";
 import { getAsset } from "../assets";
 import { CPiece, CPIECE_WIDTH } from "./piece";
 import { syncPieceViews, type TPiecePlacement } from "./pieces";
-import { CAnimations } from "./motion";
+import { CAnimations, tween } from "./motion";
 import config from "../config";
 import { TRAY_SIZE } from "../model/rules";
 import type { TGameState } from "../model/types";
@@ -58,7 +57,7 @@ export class CTray extends CContainer<TNone, TTrayEvents> {
   }
 
   private arc(view: CPiece, fromX: number, toX: number, lift: number) {
-    const controls = animate(0, 1, {
+    const controls = tween(0, 1, {
       duration: SWAP_DURATION,
       ease: "easeInOut",
       onUpdate: (t) => {

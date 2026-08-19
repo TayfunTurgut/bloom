@@ -100,7 +100,7 @@ describe("createInitialState", () => {
     );
   });
 
-  it("starts an authored flower as a vined bloom with its authored value", () => {
+  it("starts an authored crop growing with its authored value", () => {
     const authored: TLevel = {
       ...level,
       data: level.data.map((entry, index) =>
@@ -110,13 +110,13 @@ describe("createInitialState", () => {
     const state = createInitialState(0, authored, SEED);
 
     const piece = at(state, 1, 1);
-    expect(piece?.type).toBe("BLOOM");
+    expect(piece?.type).toBe("GROWING");
     expect(piece?.assetKey).toBe(CARROT);
     expect(piece?.currentValue).toBe(6);
     expect(piece?.startingValue).toBe(6);
   });
 
-  it("rolls a seeded value for an authored flower without one", () => {
+  it("rolls a seeded value for an authored crop without one", () => {
     const authored: TLevel = {
       ...level,
       data: level.data.map((entry, index) =>
@@ -145,23 +145,23 @@ describe("placeFromTray", () => {
     expect(state.tray).not.toContain(front);
   });
 
-  it("blooms an isolated flower and reports it", () => {
+  it("sprouts an isolated crop and reports it", () => {
     const state = createInitialState(0, level, SEED);
     stack(state, { currentValue: 5 });
 
     const report = placeFromTray(state, 0, 0);
 
-    expect(at(state, 0, 0)?.type).toBe("BLOOM");
+    expect(at(state, 0, 0)?.type).toBe("GROWING");
     expect(at(state, 0, 0)?.currentValue).toBe(5);
     expect(report?.effects).toContainEqual({
-      type: "BLOOMED",
+      type: "SPROUTED",
       cell: cellIdFromXY(0, 0),
       pieceId: 1000,
       value: 5,
     });
   });
 
-  it("turns a flower with vined neighbours into supply and drains the strongest", () => {
+  it("turns a crop with growing neighbours into supply and feeds the strongest", () => {
     const state = createInitialState(0, level, SEED);
 
     stack(state, { currentValue: 5 });
@@ -176,7 +176,7 @@ describe("placeFromTray", () => {
     expect(at(state, 0, 0)?.currentValue).toBe(5);
   });
 
-  it("drains the neighbour on the left when two neighbours tie on value", () => {
+  it("feeds the neighbour on the left when two neighbours tie on value", () => {
     const state = createInitialState(0, level, SEED);
 
     stack(state, { currentValue: 6 });
@@ -190,7 +190,7 @@ describe("placeFromTray", () => {
     expect(at(state, 2, 1)?.currentValue).toBe(6);
   });
 
-  it("clamps a drain at zero and pops the bloom with its supplies", () => {
+  it("clamps a feed at zero and harvests the crop with its supplies", () => {
     const state = createInitialState(0, level, SEED);
 
     stack(state, { currentValue: 5 });
@@ -201,17 +201,17 @@ describe("placeFromTray", () => {
     expect(at(state, 0, 0)).toBeNull();
     expect(at(state, 1, 0)).toBeNull();
     expect(report?.effects).toContainEqual(
-      expect.objectContaining({ type: "DRAINED", amount: 12, remaining: 0 }),
+      expect.objectContaining({ type: "FED", amount: 12, remaining: 0 }),
     );
     expect(
-      report?.effects.filter((effect) => effect.type === "POPPED"),
+      report?.effects.filter((effect) => effect.type === "HARVESTED"),
     ).toEqual([
-      expect.objectContaining({ flower: "BLOOM", cell: cellIdFromXY(0, 0) }),
-      expect.objectContaining({ flower: "SUPPLY", cell: cellIdFromXY(1, 0) }),
+      expect.objectContaining({ crop: "GROWING", cell: cellIdFromXY(0, 0) }),
+      expect.objectContaining({ crop: "SUPPLY", cell: cellIdFromXY(1, 0) }),
     ]);
   });
 
-  it("blooms a flower whose only neighbours are spent supplies", () => {
+  it("sprouts a crop whose only neighbours are spent supplies", () => {
     const state = createInitialState(0, level, SEED);
 
     stack(state, { currentValue: 5 });
@@ -223,7 +223,7 @@ describe("placeFromTray", () => {
     stack(state, { currentValue: 4 });
     placeFromTray(state, 2, 0);
 
-    expect(at(state, 2, 0)?.type).toBe("BLOOM");
+    expect(at(state, 2, 0)?.type).toBe("GROWING");
     expect(at(state, 1, 0)?.currentValue).toBe(3);
   });
 
@@ -253,8 +253,8 @@ describe("placeFromTray", () => {
   });
 });
 
-describe("popping a bloom", () => {
-  it("advances a matching goal only on the pop, never on placement", () => {
+describe("harvesting a crop", () => {
+  it("advances a matching goal only on the harvest, never on placement", () => {
     const state = createInitialState(0, level, SEED);
     const goal = state.goals[0];
 
@@ -271,7 +271,7 @@ describe("popping a bloom", () => {
     expect(isGoalComplete(goal)).toBe(false);
   });
 
-  it("awards the bloom's starting value, capped at the score max", () => {
+  it("awards the crop's starting value, capped at the score max", () => {
     const state = createInitialState(0, level, SEED);
     expect(scoreMax(state)).toBe(10);
     expect(milestoneThresholds(state)).toEqual([4, 7, 10]);
@@ -296,7 +296,7 @@ describe("popping a bloom", () => {
     ]);
   });
 
-  it("pops adjacent supplies without goal or score credit", () => {
+  it("harvests adjacent supplies without goal or score credit", () => {
     const state = createInitialState(0, level, SEED);
     const goal = state.goals[0];
 
@@ -314,7 +314,7 @@ describe("popping a bloom", () => {
     expect(state.score).toBe(4);
   });
 
-  it("never cascades into a second bloom", () => {
+  it("never cascades into a second growing crop", () => {
     const state = createInitialState(0, level, SEED);
 
     stack(state, { currentValue: 8 });
@@ -326,7 +326,7 @@ describe("popping a bloom", () => {
 
     expect(at(state, 0, 0)).toBeNull();
     expect(at(state, 1, 0)).toBeNull();
-    expect(at(state, 2, 0)?.type).toBe("BLOOM");
+    expect(at(state, 2, 0)?.type).toBe("GROWING");
     expect(at(state, 2, 0)?.currentValue).toBe(3);
   });
 });
@@ -365,13 +365,13 @@ describe("level outcome", () => {
     const filling = placeFromTray(state, 2, 0);
 
     expect(at(state, 0, 0)?.currentValue).toBe(7);
-    expect(at(state, 2, 0)?.type).toBe("BLOOM");
+    expect(at(state, 2, 0)?.type).toBe("GROWING");
     expect(
       filling?.effects.filter((effect) => effect.type === "LEVEL_FAILED"),
     ).toEqual([{ type: "LEVEL_FAILED" }]);
   });
 
-  it("does not fail when the filling move pops cells free", () => {
+  it("does not fail when the filling move harvests cells free", () => {
     const state = createInitialState(0, rowLevel, SEED);
 
     stack(state, { assetKey: APPLE, currentValue: 9 });
@@ -407,7 +407,7 @@ describe("a level with holes", () => {
     expect(state.tray).toEqual(before);
   });
 
-  it("does not let flowers reach across a hole", () => {
+  it("does not let crops reach across a hole", () => {
     const state = createInitialState(0, holedLevel, SEED);
 
     stack(state, { currentValue: 5 });
@@ -415,7 +415,7 @@ describe("a level with holes", () => {
     stack(state, { currentValue: 3 });
     placeFromTray(state, 1, 2);
 
-    expect(at(state, 1, 2)?.type).toBe("BLOOM");
+    expect(at(state, 1, 2)?.type).toBe("GROWING");
     expect(at(state, 1, 0)?.currentValue).toBe(5);
   });
 });
