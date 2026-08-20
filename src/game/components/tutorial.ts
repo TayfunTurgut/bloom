@@ -2,7 +2,12 @@ import { Graphics, Text } from "pixi.js";
 import { CContainer, type TNone } from "../../engine/container";
 import { getAsset } from "../assets";
 import { CAnimations, tween } from "./motion";
-import { COLOR_FONT_FILL_BROWN } from "../colors";
+import {
+  COLOR_FONT_FILL_BROWN,
+  COLOR_PANEL_BORDER,
+  COLOR_PANEL_FILL,
+  COLOR_PANEL_SHADOW,
+} from "../colors";
 import config from "../config";
 
 export type TTutorialEvents = {
@@ -31,9 +36,6 @@ const PANEL_H = 460;
 const CX = config.width * 0.5;
 const CY = config.height * 0.5;
 
-const PANEL_FILL = 0xf5e7cf;
-const PANEL_BORDER = 0x8a5a3b;
-
 export const lessonForLevel = (levelIndex: number): TLesson | null =>
   LESSONS[levelIndex] ?? null;
 
@@ -51,10 +53,21 @@ export class CTutorialOverlay extends CContainer<TNone, TTutorialEvents> {
     dim.on("pointertap", () => this.emit("tutorial:dismiss"));
     this.container.addChild(dim);
 
+    const shadow = new Graphics()
+      .roundRect(
+        CX - PANEL_W * 0.5,
+        CY - PANEL_H * 0.5 + 14,
+        PANEL_W,
+        PANEL_H,
+        40,
+      )
+      .fill({ color: COLOR_PANEL_SHADOW, alpha: 0.3 });
+    this.container.addChild(shadow);
+
     const panel = new Graphics()
       .roundRect(CX - PANEL_W * 0.5, CY - PANEL_H * 0.5, PANEL_W, PANEL_H, 36)
-      .fill({ color: PANEL_FILL })
-      .stroke({ color: PANEL_BORDER, width: 8 });
+      .fill({ color: COLOR_PANEL_FILL })
+      .stroke({ color: COLOR_PANEL_BORDER, width: 8 });
     this.container.addChild(panel);
 
     const font = getAsset<FontFace>("Baloo2-Bold").family;
@@ -96,7 +109,7 @@ export class CTutorialOverlay extends CContainer<TNone, TTutorialEvents> {
         fontFamily: font,
         fontWeight: "bold",
         fontSize: 28,
-        fill: PANEL_BORDER,
+        fill: COLOR_PANEL_BORDER,
         align: "center",
       },
     });

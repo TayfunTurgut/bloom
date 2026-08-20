@@ -22,7 +22,7 @@ export async function createEngine<K extends string>(
     autoDensity: true,
     powerPreference: "high-performance",
     preference: "webgl",
-    antialias: false,
+    antialias: true,
     resizeTo: options.mount,
     ...options.appOptions,
   });

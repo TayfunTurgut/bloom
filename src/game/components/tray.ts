@@ -4,6 +4,7 @@ import { getAsset } from "../assets";
 import { CPiece, CPIECE_WIDTH } from "./piece";
 import { syncPieceViews, type TPiecePlacement } from "./pieces";
 import { CAnimations, tween } from "./motion";
+import { COLOR_TRAY_ARROW } from "../colors";
 import config from "../config";
 import { TRAY_SIZE } from "../model/rules";
 import type { TGameState } from "../model/types";
@@ -117,7 +118,7 @@ export class CTray extends CContainer<TNone, TTrayEvents> {
       const scale = (CPIECE_WIDTH * 0.5) / Math.max(arrow.width, arrow.height);
       arrow.scale.set(scale);
       arrow.rotation = -Math.PI / 2;
-      arrow.tint = 0x5c3a22;
+      arrow.tint = COLOR_TRAY_ARROW;
       arrow.position.set((slotX(index) + slotX(index + 1)) * 0.5, 0);
       this.container.addChild(arrow);
     }

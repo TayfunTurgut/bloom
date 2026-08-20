@@ -3,6 +3,7 @@ import { CContainer } from "../../engine/container";
 import { getAsset } from "../assets";
 import { CCELL_GAP, CCELL_HEIGHT, CCELL_WIDTH } from "./cell";
 import { CAnimations, tween } from "./motion";
+import { COLOR_PIECE_VALUE_FILL, COLOR_PIECE_VALUE_STROKE } from "../colors";
 import type { AssetKey } from "../../assetpack/assets";
 import type { TCropState, TPiece } from "../model/types";
 
@@ -49,8 +50,8 @@ export class CPiece extends CContainer<{
     const text = new Text({
       text: piece.currentValue,
       style: {
-        fill: "#ffffff",
-        stroke: { color: "#4a2f18", width: 6 },
+        fill: COLOR_PIECE_VALUE_FILL,
+        stroke: { color: COLOR_PIECE_VALUE_STROKE, width: 6 },
         fontSize: 34,
         fontFamily: getAsset<FontFace>("Baloo2-Bold").family,
         fontWeight: "bold",

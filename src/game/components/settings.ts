@@ -3,7 +3,15 @@ import { CContainer, type TNone } from "../../engine/container";
 import { getAsset } from "../assets";
 import { CAnimations, tween } from "./motion";
 import { SKINS } from "../config/skins";
-import { COLOR_FONT_FILL_BROWN } from "../colors";
+import {
+  COLOR_BUTTON_DISABLED,
+  COLOR_BUTTON_FILL,
+  COLOR_FONT_FILL_BROWN,
+  COLOR_PANEL_BORDER,
+  COLOR_PANEL_FILL,
+  COLOR_PANEL_ROW,
+  COLOR_PANEL_SHADOW,
+} from "../colors";
 import config from "../config";
 
 export type TShopView = {
@@ -27,12 +35,6 @@ const ROW_W = PANEL_W - 64;
 const ROW_H = 176;
 const ROWS_TOP = PANEL_TOP + 256;
 
-const PANEL_FILL = 0xf5e7cf;
-const PANEL_BORDER = 0x8a5a3b;
-const ROW_FILL = 0xe9d3b3;
-const BTN_FILL = 0x7cb342;
-const BTN_DISABLED = 0xb3aa99;
-
 export class CSettingsOverlay extends CContainer<TNone, TSettingsEvents> {
   private readonly animations = new CAnimations();
   private readonly panel = new Container();
@@ -54,9 +56,14 @@ export class CSettingsOverlay extends CContainer<TNone, TSettingsEvents> {
     this.panel.eventMode = "static";
     this.panel.addChild(
       new Graphics()
+        .roundRect(CX - PANEL_W * 0.5, PANEL_TOP + 14, PANEL_W, PANEL_H, 40)
+        .fill({ color: COLOR_PANEL_SHADOW, alpha: 0.3 }),
+    );
+    this.panel.addChild(
+      new Graphics()
         .roundRect(CX - PANEL_W * 0.5, PANEL_TOP, PANEL_W, PANEL_H, 36)
-        .fill({ color: PANEL_FILL })
-        .stroke({ color: PANEL_BORDER, width: 8 }),
+        .fill({ color: COLOR_PANEL_FILL })
+        .stroke({ color: COLOR_PANEL_BORDER, width: 8 }),
     );
 
     this.panel.addChild(
@@ -121,7 +128,7 @@ export class CSettingsOverlay extends CContainer<TNone, TSettingsEvents> {
       row.addChild(
         new Graphics()
           .roundRect(-ROW_W * 0.5, -ROW_H * 0.5 + 10, ROW_W, ROW_H - 20, 24)
-          .fill({ color: ROW_FILL }),
+          .fill({ color: COLOR_PANEL_ROW }),
       );
 
       skin.crops.slice(0, 3).forEach((key, slot) => {
@@ -182,7 +189,7 @@ export class CSettingsOverlay extends CContainer<TNone, TSettingsEvents> {
     button.addChild(
       new Graphics()
         .roundRect(-width * 0.5, -height * 0.5, width, height, 20)
-        .fill({ color: enabled ? BTN_FILL : BTN_DISABLED }),
+        .fill({ color: enabled ? COLOR_BUTTON_FILL : COLOR_BUTTON_DISABLED }),
     );
 
     let textX = 0;

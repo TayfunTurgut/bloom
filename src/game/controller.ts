@@ -12,7 +12,7 @@ import { CTray } from "./components/tray";
 import { CLeafCounter } from "./components/leaf";
 import { CLevelEndOverlay } from "./components/win";
 import { createBackground } from "./components/background";
-import { bindAnimationsTo, CAnimations } from "./components/motion";
+import { bindAnimationsTo, CAnimations, tween } from "./components/motion";
 import { CCELL_HEIGHT, CCELL_WIDTH } from "./components/cell";
 import { fromSnapshot, toSnapshot } from "./model/serialize";
 import { CGameStore } from "./model/store";
@@ -172,6 +172,17 @@ export class CGameController extends CContainer {
     } else {
       this.maybeShowTutorial(state.level);
     }
+
+    this.levelContainer.alpha = 0;
+    this.animations.track(
+      tween(0, 1, {
+        duration: 0.35,
+        ease: "easeOut",
+        onUpdate: (t) => {
+          if (!this.levelContainer.destroyed) this.levelContainer.alpha = t;
+        },
+      }),
+    );
 
     if (import.meta.env.DEV) {
       Object.assign(window, {
