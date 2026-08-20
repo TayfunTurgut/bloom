@@ -20,6 +20,8 @@ const SETTINGS_BUTTON_X = 300;
 const SETTINGS_BUTTON_SIZE = 72;
 const SWAP_ARC = 42;
 const SWAP_DURATION = 0.35;
+const SLIDE_DROP = 84;
+const SLIDE_DURATION = 0.3;
 
 export type TTrayEvents = {
   "tray:swapClicked": [];
@@ -46,10 +48,29 @@ export class CTray extends CContainer<TNone, TTrayEvents> {
       x: slotX(index),
       y: 0,
     }));
+    const created: CPiece[] = [];
     syncPieceViews(this.pieces, this.container, placements, (view) => {
       view.container.alpha = TRAY_PIECE_ALPHA;
       view.container.scale.set(TRAY_PIECE_SCALE);
+      created.push(view);
     });
+    for (const view of created) this.slideIn(view);
+  }
+
+  private slideIn(view: CPiece) {
+    const targetX = view.container.x;
+    const targetY = view.container.y;
+    view.container.alpha = 0;
+    const controls = tween(0, 1, {
+      duration: SLIDE_DURATION,
+      ease: "backOut",
+      onUpdate: (t) => {
+        if (view.container.destroyed) return;
+        view.container.position.set(targetX, targetY - SLIDE_DROP * (1 - t));
+        view.container.alpha = TRAY_PIECE_ALPHA * t;
+      },
+    });
+    this.animations.track(controls);
   }
 
   playSwap(aId: number, bId: number) {

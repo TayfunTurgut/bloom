@@ -8,6 +8,7 @@ import type { TCropState, TPiece } from "../model/types";
 
 export const CPIECE_WIDTH = 80;
 export const CPIECE_HEIGHT = 80;
+const CROP_BASELINE_Y = CPIECE_HEIGHT * 0.5;
 
 const SUPPLY_TINT = 0x777777;
 
@@ -29,12 +30,14 @@ export class CPiece extends CContainer<{
     this.drawnType = piece.type;
 
     const sprite = new Sprite(getAsset<Texture>(piece.assetKey));
-    sprite.anchor.set(0.5);
+    sprite.anchor.set(0.5, 1);
+    const source = sprite.texture.orig;
     const scale = Math.min(
-      CPIECE_WIDTH / sprite.width,
-      CPIECE_HEIGHT / sprite.height,
+      CPIECE_WIDTH / source.width,
+      CPIECE_HEIGHT / source.height,
     );
     sprite.scale.set(scale);
+    sprite.position.set(0, CROP_BASELINE_Y);
     this.addNamedChild("sprite", sprite);
 
     const growth = new Sprite(
