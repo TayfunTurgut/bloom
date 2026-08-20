@@ -14,7 +14,7 @@ const goalSchema = z.object({
   count: z.number().int().min(1),
 });
 
-const levelSchema = z
+export const levelSchema = z
   .object({
     data: z.array(cellSchema).min(1),
     columns: z.number().int().min(1),
@@ -56,7 +56,9 @@ const levelSchema = z
 export const configSchema = z.object({
   width: z.number().min(1).default(1080),
   height: z.number().min(1).default(1920),
-  levels: z.array(levelSchema),
+  levels: z.array(levelSchema).default([]),
 });
 export type TConfig = z.infer<typeof configSchema>;
 export type TConfigInput = z.input<typeof configSchema>;
+export type TLevel = z.infer<typeof levelSchema>;
+export type TLevelInput = z.input<typeof levelSchema>;

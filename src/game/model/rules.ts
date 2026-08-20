@@ -1,4 +1,4 @@
-import type { TConfig } from "../config/schema";
+import type { TLevel } from "../config/schema";
 import { cellIdFromXY, xyFromCellId, type CellId } from "../id";
 import { nextFrom, nextInt, randomSeed } from "./rng";
 import type {
@@ -10,7 +10,7 @@ import type {
   TPiece,
 } from "./types";
 
-export type TLevel = TConfig["levels"][number];
+export type { TLevel };
 
 export const TRAY_SIZE = 3;
 export const PIECE_VALUE_MIN = 1;

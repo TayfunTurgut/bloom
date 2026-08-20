@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { configSchema, type TConfigInput } from "./schema";
-import shippedConfig from "./index";
-
-type TLevelInput = TConfigInput["levels"][number];
+import { configSchema, type TConfigInput, type TLevelInput } from "./schema";
 
 const cells = (count: number) => Array.from({ length: count }, () => ({}));
 
@@ -88,13 +85,5 @@ describe("goals", () => {
         })),
       }),
     ).toBe(false);
-  });
-});
-
-describe("the shipped config", () => {
-  it("describes levels whose cells fill whole rows", () => {
-    for (const level of shippedConfig.levels) {
-      expect(level.data.length % level.columns).toBe(0);
-    }
   });
 });

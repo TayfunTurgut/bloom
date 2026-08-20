@@ -7,7 +7,7 @@ import {
 import type { TLevel } from "./rules";
 import type { TCell, TGameState } from "./types";
 
-export const toSnapshot = (state: TGameState): TSaveState => {
+export const toSnapshot = (state: TGameState, skinId: string): TSaveState => {
   const board: (TPieceSnapshot | null)[] = [];
   for (let y = 0; y < state.rows; y++) {
     for (let x = 0; x < state.columns; x++) {
@@ -19,6 +19,7 @@ export const toSnapshot = (state: TGameState): TSaveState => {
   return {
     version: SAVE_VERSION,
     level: state.level,
+    skin: skinId,
     moves: state.moves,
     score: state.score,
     rng: state.rng,

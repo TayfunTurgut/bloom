@@ -22,6 +22,9 @@ import {
   isLevelWon,
   milestonesReached,
 } from "./model/rules";
+import { generateLevel } from "./config/generate";
+import { advanceProgress, WRAP_BONUS_LEAVES } from "./config/progression";
+import { skinById } from "./config/skins";
 import type { TGameState, TMoveReport } from "./model/types";
 import { saveSaveState, loadSaveState } from "./state";
 import { loadProfile, saveProfile } from "./state/profile";
@@ -38,7 +41,6 @@ const STATIC_ASSET_KEYS: readonly AssetKey[] = [
   "Baloo2-Regular",
 ];
 
-const WRAP_BONUS_LEAVES = 50;
 const LEVEL_END_BEAT = 0.3;
 
 export class CGameController extends CContainer {
@@ -52,6 +54,7 @@ export class CGameController extends CContainer {
   private overlay: CLevelEndOverlay | null = null;
   private unsubscribe: (() => void) | null = null;
   private profile = loadProfile();
+  private currentSkinId!: string;
   private generation = 0;
   private readonly animations = new CAnimations();
 
@@ -97,11 +100,20 @@ export class CGameController extends CContainer {
     this.leafCounter = new CLeafCounter(this.profile.leaves);
 
     const save = loadSaveState();
-    const currentLevel = save.level % config.levels.length;
-    const level = config.levels[currentLevel];
-    const restored = fromSnapshot(save, currentLevel, level);
+    const skin = skinById(save.skin);
+    this.currentSkinId = skin.id;
+
+    const forced = devLevel();
+    if (forced !== undefined) {
+      const level = generateLevel(forced, skin);
+      this.startLevel(createInitialState(forced, level, devSeed()));
+      return;
+    }
+
+    const level = generateLevel(save.level, skin);
+    const restored = fromSnapshot(save, save.level, level);
     this.startLevel(
-      restored ?? createInitialState(currentLevel, level, devSeed()),
+      restored ?? createInitialState(save.level, level, devSeed()),
     );
   }
 
@@ -128,7 +140,7 @@ export class CGameController extends CContainer {
     this.effects = new CEffects(this.board.effectContainer, overlayFx);
 
     this.unsubscribe = this.store.subscribe((next, report) => {
-      saveSaveState(toSnapshot(next));
+      saveSaveState(toSnapshot(next, this.currentSkinId));
       if (!report) {
         this.render(next);
         return;
@@ -144,7 +156,7 @@ export class CGameController extends CContainer {
       }
     });
     this.render(state);
-    saveSaveState(toSnapshot(state));
+    saveSaveState(toSnapshot(state, this.currentSkinId));
 
     this.layout(state.rows, state.columns);
 
@@ -273,18 +285,25 @@ export class CGameController extends CContainer {
   }
 
   private advanceLevel() {
-    let next = this.store.state.level + 1;
-    if (next >= config.levels.length) {
-      next = 0;
+    const result = advanceProgress(
+      this.store.state.level,
+      this.profile.endless,
+    );
+    this.profile = { ...this.profile, endless: result.endless };
+    if (result.awardBonus) {
       this.profile = {
         ...this.profile,
         leaves: this.profile.leaves + WRAP_BONUS_LEAVES,
       };
-      saveProfile(this.profile);
-      this.leafCounter.setCount(this.profile.leaves);
     }
+    saveProfile(this.profile);
+    if (result.awardBonus) this.leafCounter.setCount(this.profile.leaves);
+
     this.endLevel();
-    const state = createInitialState(next, config.levels[next], devSeed());
+    const skin = skinById(this.profile.selectedSkin);
+    this.currentSkinId = skin.id;
+    const level = generateLevel(result.index, skin);
+    const state = createInitialState(result.index, level, devSeed());
     this.startLevel(state);
   }
 
@@ -336,4 +355,11 @@ const devSeed = (): number | undefined => {
   if (!import.meta.env.DEV) return undefined;
   const value = new URLSearchParams(window.location.search).get("seed");
   return value === null ? undefined : Number(value) | 0;
+};
+
+const devLevel = (): number | undefined => {
+  if (!import.meta.env.DEV) return undefined;
+  const value = new URLSearchParams(window.location.search).get("level");
+  if (value === null) return undefined;
+  return Math.max(0, Number(value) | 0);
 };
