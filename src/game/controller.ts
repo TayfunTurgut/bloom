@@ -25,6 +25,8 @@ import {
 import { generateLevel } from "./config/generate";
 import { advanceProgress, WRAP_BONUS_LEAVES } from "./config/progression";
 import { skinById } from "./config/skins";
+import { CSettingsOverlay, type TShopView } from "./components/settings";
+import { CTutorialOverlay, lessonForLevel } from "./components/tutorial";
 import type { TGameState, TMoveReport } from "./model/types";
 import { saveSaveState, loadSaveState } from "./state";
 import { loadProfile, saveProfile } from "./state/profile";
@@ -52,6 +54,8 @@ export class CGameController extends CContainer {
   private leafCounter!: CLeafCounter;
   private levelContainer!: Container;
   private overlay: CLevelEndOverlay | null = null;
+  private settingsOverlay: CSettingsOverlay | null = null;
+  private tutorialOverlay: CTutorialOverlay | null = null;
   private unsubscribe: (() => void) | null = null;
   private profile = loadProfile();
   private currentSkinId!: string;
@@ -133,6 +137,7 @@ export class CGameController extends CContainer {
 
     this.tray = new CTray();
     this.tray.on("tray:swapClicked", () => this.store.swapTray());
+    this.tray.on("tray:settingsClicked", () => this.openSettings());
     this.levelContainer.addChild(this.tray.container);
 
     const overlayFx = new Container();
@@ -164,11 +169,17 @@ export class CGameController extends CContainer {
       this.showLevelEnd(true, milestonesReached(state));
     } else if (isLevelFailed(state)) {
       this.showLevelEnd(false, milestonesReached(state));
+    } else {
+      this.maybeShowTutorial(state.level);
     }
 
     if (import.meta.env.DEV) {
       Object.assign(window, {
-        __sprout: { store: this.store, app: this.engine.app },
+        __sprout: {
+          store: this.store,
+          app: this.engine.app,
+          controller: this,
+        },
       });
     }
   }
@@ -180,6 +191,10 @@ export class CGameController extends CContainer {
     this.unsubscribe = null;
     this.overlay?.destroy();
     this.overlay = null;
+    this.settingsOverlay?.destroy();
+    this.settingsOverlay = null;
+    this.tutorialOverlay?.destroy();
+    this.tutorialOverlay = null;
     this.effects.destroy();
     this.tray.destroy();
     this.board.destroy();
@@ -273,6 +288,73 @@ export class CGameController extends CContainer {
   private unlockInput() {
     this.board.container.interactiveChildren = true;
     this.tray.container.interactiveChildren = true;
+  }
+
+  private maybeShowTutorial(level: number) {
+    if (this.profile.tutorialsSeen.includes(level)) return;
+    const lesson = lessonForLevel(level);
+    if (!lesson) return;
+    this.lockInput();
+    const overlay = new CTutorialOverlay(lesson);
+    this.tutorialOverlay = overlay;
+    this.levelContainer.addChild(overlay.container);
+    overlay.once("tutorial:dismiss", () => {
+      this.profile = {
+        ...this.profile,
+        tutorialsSeen: [...this.profile.tutorialsSeen, level],
+      };
+      saveProfile(this.profile);
+      overlay.destroy();
+      this.tutorialOverlay = null;
+      this.unlockInput();
+    });
+  }
+
+  private openSettings() {
+    if (this.settingsOverlay || this.overlay || this.tutorialOverlay) return;
+    this.lockInput();
+    const overlay = new CSettingsOverlay(this.shopView());
+    this.settingsOverlay = overlay;
+    this.levelContainer.addChild(overlay.container);
+    overlay.on("settings:buy", (id) => this.buySkin(id));
+    overlay.on("settings:select", (id) => this.selectSkin(id));
+    overlay.on("settings:close", () => this.closeSettings());
+  }
+
+  private shopView(): TShopView {
+    return {
+      leaves: this.profile.leaves,
+      ownedSkins: this.profile.ownedSkins,
+      selectedSkin: this.profile.selectedSkin,
+    };
+  }
+
+  private buySkin(id: string) {
+    const skin = skinById(id);
+    if (this.profile.ownedSkins.includes(id)) return;
+    if (this.profile.leaves < skin.price) return;
+    this.profile = {
+      ...this.profile,
+      leaves: this.profile.leaves - skin.price,
+      ownedSkins: [...this.profile.ownedSkins, id],
+      selectedSkin: id,
+    };
+    saveProfile(this.profile);
+    this.leafCounter.setCount(this.profile.leaves);
+    this.settingsOverlay?.update(this.shopView());
+  }
+
+  private selectSkin(id: string) {
+    if (!this.profile.ownedSkins.includes(id)) return;
+    this.profile = { ...this.profile, selectedSkin: id };
+    saveProfile(this.profile);
+    this.settingsOverlay?.update(this.shopView());
+  }
+
+  private closeSettings() {
+    this.settingsOverlay?.destroy();
+    this.settingsOverlay = null;
+    this.unlockInput();
   }
 
   private showLevelEnd(won: boolean, milestones: number) {

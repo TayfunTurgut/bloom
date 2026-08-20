@@ -16,11 +16,14 @@ const DIVIDER_HEIGHT = 96;
 const SWAP_BUTTON_X = 210;
 const TRAY_PIECE_ALPHA = 0.8;
 const SWAP_BUTTON_SIZE = 84;
+const SETTINGS_BUTTON_X = 300;
+const SETTINGS_BUTTON_SIZE = 72;
 const SWAP_ARC = 42;
 const SWAP_DURATION = 0.35;
 
 export type TTrayEvents = {
   "tray:swapClicked": [];
+  "tray:settingsClicked": [];
 };
 
 export class CTray extends CContainer<TNone, TTrayEvents> {
@@ -34,6 +37,7 @@ export class CTray extends CContainer<TNone, TTrayEvents> {
     this.createArrows();
     this.createDivider();
     this.createSwapButton();
+    this.createSettingsButton();
   }
 
   render(state: TGameState) {
@@ -123,6 +127,26 @@ export class CTray extends CContainer<TNone, TTrayEvents> {
     button.on("pointerup", restore);
     button.on("pointerupoutside", restore);
     button.on("pointertap", () => this.emit("tray:swapClicked"));
+    this.container.addChild(button);
+  }
+
+  private createSettingsButton() {
+    const button = new Sprite(getAsset<Texture>("btn-settings"));
+    button.anchor.set(0.5);
+    const scale = SETTINGS_BUTTON_SIZE / Math.max(button.width, button.height);
+    button.scale.set(scale);
+    button.position.set(SETTINGS_BUTTON_X, 0);
+    button.eventMode = "static";
+    button.cursor = "pointer";
+    const restore = () => {
+      button.texture = getAsset<Texture>("btn-settings");
+    };
+    button.on("pointerdown", () => {
+      button.texture = getAsset<Texture>("btn-settings-pressed");
+    });
+    button.on("pointerup", restore);
+    button.on("pointerupoutside", restore);
+    button.on("pointertap", () => this.emit("tray:settingsClicked"));
     this.container.addChild(button);
   }
 }
