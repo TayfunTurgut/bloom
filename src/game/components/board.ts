@@ -48,6 +48,12 @@ export class CBoard extends CContainer<TNone, TBoardEvents> {
     syncPieceViews(this.pieces, this.pieceContainer, placements);
   }
 
+  activeCount(): number {
+    let total = 0;
+    for (const view of this.pieces.values()) total += view.activeCount;
+    return total;
+  }
+
   positionOfCell(cellId: CellId): { x: number; y: number } | null {
     if (!this.playable.has(cellId)) return null;
     const { x, y } = xyFromCellId(cellId);

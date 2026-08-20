@@ -74,6 +74,12 @@ export class CTray extends CContainer<TNone, TTrayEvents> {
     this.animations.track(controls);
   }
 
+  activeCount(): number {
+    let total = this.animations.activeCount;
+    for (const view of this.pieces.values()) total += view.activeCount;
+    return total;
+  }
+
   playSwap(aId: number, bId: number) {
     const a = this.pieces.get(aId);
     const b = this.pieces.get(bId);

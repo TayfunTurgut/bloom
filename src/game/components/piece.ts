@@ -64,6 +64,10 @@ export class CPiece extends CContainer<{
     this.apply(piece);
   }
 
+  get activeCount(): number {
+    return this.animations.activeCount;
+  }
+
   showValue(value: number) {
     if (value === this.drawnValue) return;
     this.drawnValue = value;

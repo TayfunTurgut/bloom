@@ -44,6 +44,10 @@ export class CAnimations {
   private readonly running = new Set<TAnimation>();
   private readonly resolvers = new Set<() => void>();
 
+  get activeCount(): number {
+    return this.running.size;
+  }
+
   track(controls: TAnimation, cleanup?: () => void) {
     this.running.add(controls);
     void controls.then(() => {

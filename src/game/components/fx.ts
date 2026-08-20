@@ -46,6 +46,10 @@ export class CEffects {
     private readonly overlayFx: Container,
   ) {}
 
+  activeCount(): number {
+    return this.animations.activeCount;
+  }
+
   destroy() {
     this.animations.stopAll();
     for (const emitter of this.emitters.values()) {

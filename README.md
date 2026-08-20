@@ -31,8 +31,14 @@ growing crop.
 
 A level is won when every goal completes, and failed when the board fills
 first. Each ring milestone banks a leaf into the persistent profile
-(`sprout:profile`); finishing the last level wraps back to the first with a
-leaf bonus.
+(`sprout:profile`). Levels are generated deterministically from a small library
+of board templates (`config/templates.ts`) across a 1,000-level difficulty ramp
+(`config/generate.ts`); the first ten are gentle. Finishing all 1,000 grants a
+leaf bonus and then reshuffles the post-tutorial pool endlessly. Every level
+draws its crops from the active skin — a fixed palette of readable crops
+(`config/skins.ts`) — and the tray's settings button opens a shop that sells
+alternate skins for leaves. The first three levels show a one-time coaching
+popup.
 
 A move returns a `TMoveReport`: an ordered log of what happened (`SPROUTED`,
 `FED`, `HARVESTED`, `SCORED`, …). The state is still the whole truth of what
@@ -54,9 +60,14 @@ pnpm assetpack  # generate public/assets/ — rerun after changing src/assets/
 pnpm dev        # vite dev server on :8080
 ```
 
-Dev builds accept `?seed=<n>` to fix the RNG and expose
-`window.__sprout` (store + app) for scripted testing; both are stripped from
-production builds.
+Dev builds accept `?seed=<n>` to fix the tray RNG, `?level=<n>` to boot a
+specific level, and `?gallery` to render every active-skin crop on a shared
+baseline alongside the growth stages — a quick visual check for readability and
+alignment. They also expose `window.__sprout` for scripted testing: `state()`,
+`lastReport()`, `place(x, y)`, `swap()`, `goToLevel(n)`, `setSkin(id)`, and
+`idle()` — a promise that resolves once the board, tray and effect animations
+settle, so a script can drive a move and screenshot a deterministic frame. All
+of it is stripped from production builds.
 
 `pnpm build` runs `assetpack → prettier → eslint → tsc → vite build` — the order
 matters because AssetPack regenerates `src/assetpack/assets.d.ts`, which the

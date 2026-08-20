@@ -27,6 +27,7 @@ import { advanceProgress, WRAP_BONUS_LEAVES } from "./config/progression";
 import { skinById } from "./config/skins";
 import { CSettingsOverlay, type TShopView } from "./components/settings";
 import { CTutorialOverlay, lessonForLevel } from "./components/tutorial";
+import { buildGallery } from "./dev/gallery";
 import type { TGameState, TMoveReport } from "./model/types";
 import { saveSaveState, loadSaveState } from "./state";
 import { loadProfile, saveProfile } from "./state/profile";
@@ -60,6 +61,8 @@ export class CGameController extends CContainer {
   private profile = loadProfile();
   private currentSkinId!: string;
   private generation = 0;
+  private presenting = false;
+  private lastReport: TMoveReport | null = null;
   private readonly animations = new CAnimations();
 
   constructor(private readonly engine: IEngine<AssetKey>) {
@@ -107,6 +110,11 @@ export class CGameController extends CContainer {
     const skin = skinById(save.skin);
     this.currentSkinId = skin.id;
 
+    if (devGallery()) {
+      this.container.addChild(buildGallery(skin));
+      return;
+    }
+
     const forced = devLevel();
     if (forced !== undefined) {
       const level = generateLevel(forced, skin);
@@ -150,6 +158,7 @@ export class CGameController extends CContainer {
         this.render(next);
         return;
       }
+      this.lastReport = report;
       if (report.effects.some((effect) => effect.type === "PIECE_PLACED")) {
         void this.presentMove(next, report);
         return;
@@ -187,9 +196,16 @@ export class CGameController extends CContainer {
     if (import.meta.env.DEV) {
       Object.assign(window, {
         __sprout: {
-          store: this.store,
           app: this.engine.app,
           controller: this,
+          store: this.store,
+          state: () => this.store.state,
+          lastReport: () => this.lastReport,
+          place: (x: number, y: number) => this.store.place(x, y),
+          swap: () => this.store.swapTray(),
+          goToLevel: (index: number) => this.goToLevel(index),
+          setSkin: (id: string) => this.setSkin(id),
+          idle: () => this.idle(),
         },
       });
     }
@@ -219,6 +235,15 @@ export class CGameController extends CContainer {
   }
 
   private async presentMove(state: TGameState, report: TMoveReport) {
+    this.presenting = true;
+    try {
+      await this.runMove(state, report);
+    } finally {
+      this.presenting = false;
+    }
+  }
+
+  private async runMove(state: TGameState, report: TMoveReport) {
     const generation = this.generation;
     this.lockInput();
     this.tray.render(state);
@@ -368,6 +393,51 @@ export class CGameController extends CContainer {
     this.unlockInput();
   }
 
+  goToLevel(index: number) {
+    this.endLevel();
+    const skin = skinById(this.profile.selectedSkin);
+    this.currentSkinId = skin.id;
+    const level = generateLevel(index, skin);
+    this.startLevel(createInitialState(index, level, devSeed()));
+  }
+
+  setSkin(id: string) {
+    const ownedSkins = this.profile.ownedSkins.includes(id)
+      ? this.profile.ownedSkins
+      : [...this.profile.ownedSkins, id];
+    this.profile = { ...this.profile, selectedSkin: id, ownedSkins };
+    saveProfile(this.profile);
+    this.goToLevel(this.store.state.level);
+  }
+
+  idle(): Promise<void> {
+    const ticker = this.engine.app.ticker;
+    return new Promise((resolve) => {
+      let stable = 0;
+      const check = () => {
+        if (this.isIdle()) {
+          if (++stable >= 2) {
+            ticker.remove(check);
+            resolve();
+          }
+        } else {
+          stable = 0;
+        }
+      };
+      ticker.add(check);
+    });
+  }
+
+  private isIdle(): boolean {
+    return (
+      !this.presenting &&
+      this.animations.activeCount === 0 &&
+      this.board.activeCount() === 0 &&
+      this.tray.activeCount() === 0 &&
+      this.effects.activeCount() === 0
+    );
+  }
+
   private showLevelEnd(won: boolean, milestones: number) {
     if (this.overlay) return;
     this.lockInput();
@@ -456,3 +526,7 @@ const devLevel = (): number | undefined => {
   if (value === null) return undefined;
   return Math.max(0, Number(value) | 0);
 };
+
+const devGallery = (): boolean =>
+  import.meta.env.DEV &&
+  new URLSearchParams(window.location.search).has("gallery");
