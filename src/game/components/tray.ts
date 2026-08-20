@@ -14,10 +14,12 @@ const SLOT_SPACING = CPIECE_WIDTH * TRAY_PIECE_SCALE + 28;
 const SLOT0_X = -204;
 const DIVIDER_X = 130;
 const DIVIDER_HEIGHT = 96;
-const SWAP_BUTTON_X = 210;
+const SWAP_BUTTON_X = 196;
 const TRAY_PIECE_ALPHA = 0.8;
 const SWAP_BUTTON_SIZE = 84;
-const SETTINGS_BUTTON_X = 300;
+const BUTTON_DIVIDER_X = 255;
+const BUTTON_DIVIDER_HEIGHT = 84;
+const SETTINGS_BUTTON_X = 308;
 const SETTINGS_BUTTON_SIZE = 72;
 const SWAP_ARC = 42;
 const SWAP_DURATION = 0.35;
@@ -38,7 +40,8 @@ export class CTray extends CContainer<TNone, TTrayEvents> {
 
     this.createBackground();
     this.createArrows();
-    this.createDivider();
+    this.createDivider(DIVIDER_X, DIVIDER_HEIGHT);
+    this.createDivider(BUTTON_DIVIDER_X, BUTTON_DIVIDER_HEIGHT);
     this.createSwapButton();
     this.createSettingsButton();
   }
@@ -130,11 +133,11 @@ export class CTray extends CContainer<TNone, TTrayEvents> {
     }
   }
 
-  private createDivider() {
+  private createDivider(x: number, height: number) {
     const divider = new Sprite(getAsset<Texture>("window-bar-vertical"));
     divider.anchor.set(0.5);
-    divider.scale.set(DIVIDER_HEIGHT / divider.height);
-    divider.position.set(DIVIDER_X, 0);
+    divider.scale.set(height / divider.height);
+    divider.position.set(x, 0);
     this.container.addChild(divider);
   }
 

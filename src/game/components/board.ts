@@ -4,7 +4,8 @@ import { CPiece } from "./piece";
 import { syncPieceViews, type TPiecePlacement } from "./pieces";
 import { CContainer, type TNone } from "../../engine/container";
 import { cellIdFromXY, xyFromCellId, type CellId } from "../id";
-import type { TGameState } from "../model/types";
+import { isGoalComplete } from "../model/rules";
+import type { TGameState, TPiece } from "../model/types";
 
 export type TBoardEvents = {
   "board:cellClicked": [{ x: number; y: number }];
@@ -46,6 +47,19 @@ export class CBoard extends CContainer<TNone, TBoardEvents> {
     }
 
     syncPieceViews(this.pieces, this.pieceContainer, placements);
+
+    const pendingGoals = new Set(
+      state.goals.filter((goal) => !isGoalComplete(goal)).map((g) => g.type),
+    );
+    for (const { piece } of placements) {
+      this.pieces
+        .get(piece.id)
+        ?.setGoalHighlight(
+          piece.type === "GROWING" &&
+            piece.currentValue > 0 &&
+            pendingGoals.has(piece.assetKey),
+        );
+    }
   }
 
   activeCount(): number {
@@ -72,6 +86,17 @@ export class CBoard extends CContainer<TNone, TBoardEvents> {
     this.pieceContainer.addChild(view.container);
     view.container.position.set(at.x, at.y);
     view.sync(piece);
+  }
+
+  // Shows a placed supply that the model consumed within the same move, so
+  // the player sees what fed the crop; the harvest poof removes it later.
+  showConsumedPlacement(cellId: CellId, piece: TPiece) {
+    const at = this.positionOfCell(cellId);
+    if (!at || this.pieces.has(piece.id)) return;
+    const view = new CPiece(piece);
+    this.pieces.set(piece.id, view);
+    this.pieceContainer.addChild(view.container);
+    view.container.position.set(at.x, at.y);
   }
 
   showFedValue(pieceId: number, value: number) {

@@ -1,4 +1,4 @@
-import { Graphics, Text } from "pixi.js";
+import { Graphics, Sprite, Text, type Texture } from "pixi.js";
 import { CContainer, type TNone } from "../../engine/container";
 import { getAsset } from "../assets";
 import { CAnimations, tween } from "./motion";
@@ -9,35 +9,20 @@ import {
   COLOR_PANEL_SHADOW,
 } from "../colors";
 import config from "../config";
+import type { TBodyLine, TLesson } from "./lessons";
 
 export type TTutorialEvents = {
   "tutorial:dismiss": [];
 };
 
-type TLesson = { title: string; body: string };
-
-const LESSONS: readonly TLesson[] = [
-  {
-    title: "Welcome!",
-    body: "Tap an empty tile to plant a crop. A crop with no neighbours starts growing.",
-  },
-  {
-    title: "Feed & harvest",
-    body: "Plant next to a growing crop to feed it. Feed it down to zero to harvest it!",
-  },
-  {
-    title: "Reach the goals",
-    body: "Harvest the crops shown up top before the board fills. Take your time and enjoy.",
-  },
-];
-
 const PANEL_W = config.width * 0.82;
 const PANEL_H = 460;
 const CX = config.width * 0.5;
 const CY = config.height * 0.5;
-
-export const lessonForLevel = (levelIndex: number): TLesson | null =>
-  LESSONS[levelIndex] ?? null;
+const BODY_FONT_SIZE = 38;
+const BODY_LINE_HEIGHT = 50;
+const BODY_ICON_SIZE = 44;
+const BODY_ICON_PAD = 10;
 
 export class CTutorialOverlay extends CContainer<TNone, TTutorialEvents> {
   private readonly animations = new CAnimations();
@@ -86,25 +71,29 @@ export class CTutorialOverlay extends CContainer<TNone, TTutorialEvents> {
     title.position.set(CX, CY - PANEL_H * 0.5 + 90);
     this.container.addChild(title);
 
-    const body = new Text({
-      text: lesson.body,
-      style: {
-        fontFamily: font,
-        fontWeight: "bold",
-        fontSize: 38,
-        fill: COLOR_FONT_FILL_BROWN,
-        align: "center",
-        wordWrap: true,
-        wordWrapWidth: PANEL_W - 100,
-        lineHeight: 50,
-      },
-    });
-    body.anchor.set(0.5);
-    body.position.set(CX, CY);
-    this.container.addChild(body);
+    if (typeof lesson.body === "string") {
+      const body = new Text({
+        text: lesson.body,
+        style: {
+          fontFamily: font,
+          fontWeight: "bold",
+          fontSize: BODY_FONT_SIZE,
+          fill: COLOR_FONT_FILL_BROWN,
+          align: "center",
+          wordWrap: true,
+          wordWrapWidth: PANEL_W - 100,
+          lineHeight: BODY_LINE_HEIGHT,
+        },
+      });
+      body.anchor.set(0.5);
+      body.position.set(CX, CY);
+      this.container.addChild(body);
+    } else {
+      this.buildBodyLines(lesson.body, font);
+    }
 
     const hint = new Text({
-      text: "tap to continue",
+      text: "Tap to continue",
       style: {
         fontFamily: font,
         fontWeight: "bold",
@@ -125,6 +114,42 @@ export class CTutorialOverlay extends CContainer<TNone, TTutorialEvents> {
       },
     });
     this.animations.track(controls);
+  }
+
+  private buildBodyLines(lines: readonly TBodyLine[], font: string) {
+    lines.forEach((parts, row) => {
+      const y = CY + (row - (lines.length - 1) * 0.5) * BODY_LINE_HEIGHT;
+      const nodes = parts.map((part) => {
+        if (typeof part === "string") {
+          const text = new Text({
+            text: part,
+            style: {
+              fontFamily: font,
+              fontWeight: "bold",
+              fontSize: BODY_FONT_SIZE,
+              fill: COLOR_FONT_FILL_BROWN,
+            },
+          });
+          text.anchor.set(0, 0.5);
+          return { node: text, width: text.width, pad: 0 };
+        }
+        const icon = new Sprite(getAsset<Texture>(part.icon));
+        icon.anchor.set(0, 0.5);
+        const source = icon.texture.orig;
+        icon.scale.set(BODY_ICON_SIZE / Math.max(source.width, source.height));
+        return {
+          node: icon,
+          width: icon.width + BODY_ICON_PAD * 2,
+          pad: BODY_ICON_PAD,
+        };
+      });
+      let x = CX - nodes.reduce((sum, part) => sum + part.width, 0) * 0.5;
+      for (const { node, width, pad } of nodes) {
+        node.position.set(x + pad, y);
+        this.container.addChild(node);
+        x += width;
+      }
+    });
   }
 
   destroy() {

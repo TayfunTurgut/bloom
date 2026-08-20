@@ -17,6 +17,8 @@ type TDriverUpdate = (timestamp: number) => void;
 let clock = 0;
 const updates = new Set<TDriverUpdate>();
 
+export const now = (): number => clock;
+
 export const bindAnimationsTo = (ticker: Ticker) => {
   ticker.add((t) => {
     clock += t.deltaMS;

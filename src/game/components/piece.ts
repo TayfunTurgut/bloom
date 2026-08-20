@@ -2,7 +2,7 @@ import { Sprite, Text, Texture } from "pixi.js";
 import { CContainer } from "../../engine/container";
 import { getAsset } from "../assets";
 import { CCELL_GAP, CCELL_HEIGHT, CCELL_WIDTH } from "./cell";
-import { CAnimations, tween } from "./motion";
+import { CAnimations, now, tween } from "./motion";
 import { COLOR_PIECE_VALUE_FILL, COLOR_PIECE_VALUE_STROKE } from "../colors";
 import type { AssetKey } from "../../assetpack/assets";
 import type { TCropState, TPiece } from "../model/types";
@@ -13,6 +13,9 @@ const CROP_BASELINE_Y = CPIECE_HEIGHT * 0.5;
 
 const SUPPLY_TINT = 0x777777;
 
+const GOAL_PULSE_PERIOD_MS = 1200;
+const GOAL_PULSE_AMPLITUDE = 0.025;
+
 export class CPiece extends CContainer<{
   sprite: Sprite;
   growth: Sprite;
@@ -21,6 +24,7 @@ export class CPiece extends CContainer<{
   readonly id: number;
   private drawnValue: number;
   private drawnType: TCropState;
+  private goalPulse = false;
   private readonly animations = new CAnimations();
 
   constructor(piece: TPiece) {
@@ -62,10 +66,26 @@ export class CPiece extends CContainer<{
     this.addNamedChild("value", text);
 
     this.apply(piece);
+
+    // Untracked by CAnimations on purpose: an endless pulse must not stall
+    // the idle() check that waits for activeCount to reach zero.
+    this.container.onRender = () => {
+      if (!this.goalPulse) return;
+      const t = (now() % GOAL_PULSE_PERIOD_MS) / GOAL_PULSE_PERIOD_MS;
+      this.container.scale.set(
+        1 + Math.sin(t * Math.PI * 2) * GOAL_PULSE_AMPLITUDE,
+      );
+    };
   }
 
   get activeCount(): number {
     return this.animations.activeCount;
+  }
+
+  setGoalHighlight(active: boolean) {
+    if (active === this.goalPulse) return;
+    this.goalPulse = active;
+    if (!active) this.container.scale.set(1);
   }
 
   showValue(value: number) {

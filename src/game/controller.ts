@@ -26,7 +26,8 @@ import { generateLevel } from "./config/generate";
 import { advanceProgress, WRAP_BONUS_LEAVES } from "./config/progression";
 import { skinById } from "./config/skins";
 import { CSettingsOverlay, type TShopView } from "./components/settings";
-import { CTutorialOverlay, lessonForLevel } from "./components/tutorial";
+import { CTutorialOverlay } from "./components/tutorial";
+import { nextLesson, type TLessonMoment } from "./components/lessons";
 import { buildGallery } from "./dev/gallery";
 import type { TGameState, TMoveReport } from "./model/types";
 import { saveSaveState, loadSaveState } from "./state";
@@ -179,7 +180,7 @@ export class CGameController extends CContainer {
     } else if (isLevelFailed(state)) {
       this.showLevelEnd(false, milestonesReached(state));
     } else {
-      this.maybeShowTutorial(state.level);
+      this.maybeShowLesson({ kind: "level-start", level: state.level });
     }
 
     this.levelContainer.alpha = 0;
@@ -206,6 +207,12 @@ export class CGameController extends CContainer {
           goToLevel: (index: number) => this.goToLevel(index),
           setSkin: (id: string) => this.setSkin(id),
           idle: () => this.idle(),
+          dismissTutorial: () => {
+            const overlay = this.tutorialOverlay;
+            if (!overlay) return false;
+            overlay.emit("tutorial:dismiss");
+            return true;
+          },
         },
       });
     }
@@ -247,13 +254,25 @@ export class CGameController extends CContainer {
     const generation = this.generation;
     this.lockInput();
     this.tray.render(state);
+    const fed = report.effects.find((effect) => effect.type === "FED");
     for (const effect of report.effects) {
-      if (effect.type === "PIECE_PLACED") {
-        this.board.applyPlacement(state, effect.cell);
+      if (effect.type !== "PIECE_PLACED") continue;
+      this.board.applyPlacement(state, effect.cell);
+      if (
+        fed &&
+        fed.from === effect.cell &&
+        !state.board.get(effect.cell)?.piece
+      ) {
+        this.board.showConsumedPlacement(effect.cell, {
+          id: effect.pieceId,
+          assetKey: fed.assetKey,
+          type: "SUPPLY",
+          startingValue: fed.amount,
+          currentValue: fed.amount,
+        });
       }
     }
 
-    const fed = report.effects.find((effect) => effect.type === "FED");
     if (fed) {
       const from = this.board.positionOfCell(fed.from);
       const to = this.board.positionOfCell(fed.to);
@@ -301,7 +320,12 @@ export class CGameController extends CContainer {
       (effect) => effect.type === "LEVEL_FAILED",
     );
     if (!won && !failed) {
-      this.unlockInput();
+      const moment: TLessonMoment = {
+        kind: "move-end",
+        level: state.level,
+        report,
+      };
+      if (!this.maybeShowLesson(moment)) this.unlockInput();
       return;
     }
     await this.animations.delay(LEVEL_END_BEAT);
@@ -326,10 +350,11 @@ export class CGameController extends CContainer {
     this.tray.container.interactiveChildren = true;
   }
 
-  private maybeShowTutorial(level: number) {
-    if (this.profile.tutorialsSeen.includes(level)) return;
-    const lesson = lessonForLevel(level);
-    if (!lesson) return;
+  private maybeShowLesson(moment: TLessonMoment): boolean {
+    if (this.tutorialOverlay || this.settingsOverlay || this.overlay)
+      return false;
+    const lesson = nextLesson(moment, this.profile.tutorialsSeen);
+    if (!lesson) return false;
     this.lockInput();
     const overlay = new CTutorialOverlay(lesson);
     this.tutorialOverlay = overlay;
@@ -337,13 +362,14 @@ export class CGameController extends CContainer {
     overlay.once("tutorial:dismiss", () => {
       this.profile = {
         ...this.profile,
-        tutorialsSeen: [...this.profile.tutorialsSeen, level],
+        tutorialsSeen: [...this.profile.tutorialsSeen, lesson.id],
       };
       saveProfile(this.profile);
       overlay.destroy();
       this.tutorialOverlay = null;
       this.unlockInput();
     });
+    return true;
   }
 
   private openSettings() {

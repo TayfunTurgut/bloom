@@ -37,8 +37,10 @@ of board templates (`config/templates.ts`) across a 1,000-level difficulty ramp
 leaf bonus and then reshuffles the post-tutorial pool endlessly. Every level
 draws its crops from the active skin — a fixed palette of readable crops
 (`config/skins.ts`) — and the tray's settings button opens a shop that sells
-alternate skins for leaves. The first three levels show a one-time coaching
-popup.
+alternate skins for leaves. One-time coaching popups (`components/lessons.ts`)
+teach the mechanics as they first become relevant: planting at the start of
+level one, feeding after the first crop sprouts, the tray swap button after
+the first feed, and the goals at the start of level two.
 
 A move returns a `TMoveReport`: an ordered log of what happened (`SPROUTED`,
 `FED`, `HARVESTED`, `SCORED`, …). The state is still the whole truth of what
@@ -64,7 +66,8 @@ Dev builds accept `?seed=<n>` to fix the tray RNG, `?level=<n>` to boot a
 specific level, and `?gallery` to render every active-skin crop on a shared
 baseline alongside the growth stages — a quick visual check for readability and
 alignment. They also expose `window.__sprout` for scripted testing: `state()`,
-`lastReport()`, `place(x, y)`, `swap()`, `goToLevel(n)`, `setSkin(id)`, and
+`lastReport()`, `place(x, y)`, `swap()`, `goToLevel(n)`, `setSkin(id)`,
+`dismissTutorial()` — clears an open coaching popup — and
 `idle()` — a promise that resolves once the board, tray and effect animations
 settle, so a script can drive a move and screenshot a deterministic frame. All
 of it is stripped from production builds.
