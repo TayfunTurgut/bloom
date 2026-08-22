@@ -36,6 +36,11 @@ jobs:
         run: |
           app="/Applications/Xcode_${XCODE_VERSION}.app"
           if [ ! -d "$app" ]; then
+            # Runners name Xcode with minor versions (e.g. Xcode_26.4.app) and
+            # rarely ship a major-only bundle, so fall back to the newest match.
+            app="$(ls -d /Applications/Xcode_${XCODE_VERSION}*.app 2>/dev/null | sort -V | tail -1)"
+          fi
+          if [ -z "$app" ] || [ ! -d "$app" ]; then
             echo "::error::Xcode ${XCODE_VERSION} not found on this runner. Installed:"
             ls -d /Applications/Xcode*.app
             exit 1
