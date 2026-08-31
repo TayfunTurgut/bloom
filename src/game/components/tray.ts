@@ -1,10 +1,10 @@
-import { Sprite, Texture } from "pixi.js";
+import { Graphics, Sprite, Texture } from "pixi.js";
 import { CContainer, type TNone } from "../../engine/container";
 import { getAsset } from "../assets";
 import { CPiece, CPIECE_WIDTH } from "./piece";
 import { syncPieceViews, type TPiecePlacement } from "./pieces";
-import { CAnimations, tween, type TAnimation } from "./motion";
-import { COLOR_TRAY_ARROW } from "../colors";
+import { CAnimations, now, tween, type TAnimation } from "./motion";
+import { COLOR_GOAL_PROGRESS_FILL, COLOR_TRAY_ARROW } from "../colors";
 import config from "../config";
 import { TRAY_SIZE } from "../model/rules";
 import type { TGameState } from "../model/types";
@@ -25,6 +25,8 @@ const SWAP_ARC = 42;
 const SWAP_DURATION = 0.25;
 const SLIDE_DROP = 84;
 const SLIDE_DURATION = 0.15;
+const HIGHLIGHT_RADIUS = (CPIECE_WIDTH * TRAY_PIECE_SCALE) / 2 + 8;
+const HIGHLIGHT_PULSE_PERIOD_MS = 1200;
 
 export type TTrayEvents = {
   "tray:swapClicked": [];
@@ -35,11 +37,13 @@ export class CTray extends CContainer<TNone, TTrayEvents> {
   private readonly pieces = new Map<number, CPiece>();
   private readonly animations = new CAnimations();
   private readonly pieceAnims = new Map<number, TAnimation>();
+  private readonly nextHighlight: Graphics;
 
   constructor() {
     super();
 
     this.createBackground();
+    this.nextHighlight = this.createNextHighlight();
     this.createArrows();
     this.createDivider(DIVIDER_X, DIVIDER_HEIGHT);
     this.createDivider(BUTTON_DIVIDER_X, BUTTON_DIVIDER_HEIGHT);
@@ -64,6 +68,9 @@ export class CTray extends CContainer<TNone, TTrayEvents> {
     for (const view of this.pieces.values())
       view.container.alpha = TRAY_PIECE_ALPHA;
     for (const view of created) this.slideIn(view);
+
+    this.nextHighlight.visible = state.tray.length > 0;
+    this.nextHighlight.position.set(slotX(state.tray.length - 1), 0);
   }
 
   private slideIn(view: CPiece) {
@@ -139,6 +146,26 @@ export class CTray extends CContainer<TNone, TTrayEvents> {
     sprite.anchor.set(0.5);
     sprite.scale.set(config.width / sprite.width);
     this.container.addChild(sprite);
+  }
+
+  // Marks the piece that will be placed next. Untracked by CAnimations on
+  // purpose: an endless pulse must not stall the idle() check that waits for
+  // activeCount to reach zero.
+  private createNextHighlight(): Graphics {
+    const ring = new Graphics()
+      .circle(0, 0, HIGHLIGHT_RADIUS)
+      .fill({ color: COLOR_GOAL_PROGRESS_FILL, alpha: 0.12 })
+      .circle(0, 0, HIGHLIGHT_RADIUS)
+      .stroke({ width: 6, color: COLOR_GOAL_PROGRESS_FILL });
+    ring.visible = false;
+    ring.onRender = () => {
+      const t = (now() % HIGHLIGHT_PULSE_PERIOD_MS) / HIGHLIGHT_PULSE_PERIOD_MS;
+      const wave = Math.sin(t * Math.PI * 2);
+      ring.alpha = 0.7 + 0.3 * wave;
+      ring.scale.set(1 + 0.04 * wave);
+    };
+    this.container.addChild(ring);
+    return ring;
   }
 
   private createArrows() {
