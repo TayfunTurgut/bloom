@@ -65,6 +65,12 @@ export const fromSnapshot = (
   if (pieces.some((piece) => piece.rocked && piece.type !== "GROWING"))
     return null;
 
+  // createInitialState builds a level's authored crops before it deals the
+  // tray, so they always hold the first ids. A save written before the level
+  // gained those crops spends those ids elsewhere, which is the one sign that
+  // it predates the level it claims to belong to.
+  const authored = level.data.filter((cell) => cell.piece).length;
+
   const board = new Map<CellId, TCell>();
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < columns; x++) {
@@ -74,9 +80,13 @@ export const fromSnapshot = (
         if (piece !== null) return null;
         continue;
       }
+      if (piece && piece.id <= authored && !level.data[index].piece) {
+        return null;
+      }
       board.set(cellIdFromXY(x, y), { piece: piece ? { ...piece } : null });
     }
   }
+  if (snapshot.tray.some((piece) => piece.id <= authored)) return null;
 
   return {
     level: levelIndex,

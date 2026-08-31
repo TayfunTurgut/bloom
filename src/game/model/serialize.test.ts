@@ -181,14 +181,14 @@ describe("an authored growing crop", () => {
   });
 });
 
-describe("a rocked authored crop", () => {
-  const rockedLevel: TLevel = {
-    ...level,
-    data: level.data.map((entry, index) =>
-      index === 4 ? cell({ piece: CARROT, value: 6, rocked: true }) : entry,
-    ),
-  };
+const rockedLevel: TLevel = {
+  ...level,
+  data: level.data.map((entry, index) =>
+    index === 4 ? cell({ piece: CARROT, value: 6, rocked: true }) : entry,
+  ),
+};
 
+describe("a rocked authored crop", () => {
   it("round-trips its rock, which still refuses to be fed", () => {
     const state = createInitialState(0, rockedLevel, 999);
     placeFromTray(state, 0, 0);
@@ -202,6 +202,25 @@ describe("a rocked authored crop", () => {
 
     const report = placeFromTray(restored!, 2, 1);
     expect(report?.effects.some((effect) => effect.type === "FED")).toBe(false);
+  });
+
+  it("rejects a save from before the level grew its rocks", () => {
+    // A 1.0.0 save predates the rocks its level now carries, and its own
+    // pieces occupy the ids the authored crops would hold.
+    const before = createInitialState(0, level, 999);
+    placeFromTray(before, 0, 0);
+
+    expect(fromSnapshot(toSnapshot(before, SKIN), 0, rockedLevel)).toBeNull();
+  });
+
+  it("still restores once the rocked crop has been harvested away", () => {
+    const state = createInitialState(0, rockedLevel, 999);
+    state.board.get(cellIdFromXY(1, 1))!.piece = null;
+    placeFromTray(state, 0, 0);
+
+    expect(
+      fromSnapshot(toSnapshot(state, SKIN), 0, rockedLevel),
+    ).not.toBeNull();
   });
 
   it("rejects a rock riding a piece that is not growing", () => {
