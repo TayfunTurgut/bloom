@@ -58,8 +58,10 @@ export const emptyProfile = (): TProfile => ({
   endless: null,
 });
 
-// Anyone who saw a popup lesson in v2/v3 is past what the guided tutorial
-// teaches, so any non-empty tutorialsSeen maps to tutorialDone.
+// The popup lessons taught their topics one at a time, so a player who saw
+// some of them may never have met the swap. tutorialDone stays false and the
+// guided tutorial offers itself again — it only ever shows on the first
+// level, which a player past it never revisits.
 const fromLegacy = (
   legacy: z.infer<typeof legacyV2Schema> | z.infer<typeof legacyV3Schema>,
 ): TProfile => ({
@@ -67,7 +69,7 @@ const fromLegacy = (
   leaves: legacy.leaves,
   ownedSkins: legacy.ownedSkins,
   selectedSkin: legacy.selectedSkin,
-  tutorialDone: legacy.tutorialsSeen.length > 0,
+  tutorialDone: false,
   musicOn: true,
   sfxOn: true,
   endless: legacy.endless,

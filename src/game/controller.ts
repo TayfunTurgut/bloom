@@ -83,6 +83,8 @@ export class CGameController extends CContainer {
   private presenting = false;
   private lastReport: TMoveReport | null = null;
   private insets: TInsets = ZERO_INSETS;
+  private feedTicket = 0;
+  private readonly latestFeed = new Map<number, number>();
   private readonly animations = new CAnimations();
 
   constructor(private readonly engine: IEngine<AssetKey>) {
@@ -259,6 +261,7 @@ export class CGameController extends CContainer {
 
   private endLevel() {
     this.generation += 1;
+    this.latestFeed.clear();
     this.animations.stopAll();
     this.unsubscribe?.();
     this.unsubscribe = null;
@@ -323,10 +326,25 @@ export class CGameController extends CContainer {
       return;
     }
     const generation = this.generation;
+    const ticket = this.claimFeed(fed.targetId);
     void this.effects.feed(fed.assetKey, fed.amount, from, to).then(() => {
       if (generation !== this.generation) return;
-      this.board.showFedValue(fed.targetId, fed.remaining);
+      this.showFedValue(fed.targetId, fed.remaining, ticket);
     });
+  }
+
+  // Feeds run concurrently and their drains last longer the more they carry,
+  // so a later, smaller feed can land first. Only the newest value claimed
+  // for a crop may be drawn, or a stale one would overwrite it.
+  private claimFeed(targetId: number): number {
+    const ticket = ++this.feedTicket;
+    this.latestFeed.set(targetId, ticket);
+    return ticket;
+  }
+
+  private showFedValue(targetId: number, remaining: number, ticket: number) {
+    if (this.latestFeed.get(targetId) !== ticket) return;
+    this.board.showFedValue(targetId, remaining);
   }
 
   private async runBlockingMove(state: TGameState, report: TMoveReport) {
@@ -355,13 +373,14 @@ export class CGameController extends CContainer {
     }
 
     if (fed) {
+      const ticket = this.claimFeed(fed.targetId);
       const from = this.board.positionOfCell(fed.from);
       const to = this.board.positionOfCell(fed.to);
       if (from && to) {
         await this.effects.feed(fed.assetKey, fed.amount, from, to);
         if (generation !== this.generation) return;
       }
-      this.board.showFedValue(fed.targetId, fed.remaining);
+      this.showFedValue(fed.targetId, fed.remaining, ticket);
     }
 
     const harvested = report.effects.filter(

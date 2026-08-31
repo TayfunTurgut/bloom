@@ -70,11 +70,10 @@ describe("loadProfile", () => {
     expect(loadProfile()).toEqual(profile);
   });
 
-  it("treats a v3 player who saw any lesson as past the tutorial", () => {
+  it("carries a v3 player's leaves, skins and endless run forward", () => {
     stubStorage().set(KEY, JSON.stringify(v3Profile(["welcome"])));
     const profile = loadProfile();
     expect(profile.version).toBe(PROFILE_VERSION);
-    expect(profile.tutorialDone).toBe(true);
     expect(profile.musicOn).toBe(true);
     expect(profile.sfxOn).toBe(true);
     expect(profile.leaves).toBe(7);
@@ -83,7 +82,13 @@ describe("loadProfile", () => {
     expect(profile.endless).toEqual({ order: [12, 10, 11], pos: 1 });
   });
 
-  it("sends a fresh v3 player through the new tutorial", () => {
+  it("offers the guided tutorial to a partly taught v3 player", () => {
+    // The popup lessons taught swap and goals separately, so seeing one of
+    // them is no proof the player learned the rest. The coach only shows on
+    // the tutorial level, so offering it again costs a player nothing.
+    stubStorage().set(KEY, JSON.stringify(v3Profile(["welcome"])));
+    expect(loadProfile().tutorialDone).toBe(false);
+
     stubStorage().set(KEY, JSON.stringify(v3Profile([])));
     expect(loadProfile().tutorialDone).toBe(false);
   });
@@ -92,14 +97,9 @@ describe("loadProfile", () => {
     stubStorage().set(KEY, JSON.stringify(v2Profile([0, 1])));
     const profile = loadProfile();
     expect(profile.version).toBe(PROFILE_VERSION);
-    expect(profile.tutorialDone).toBe(true);
+    expect(profile.tutorialDone).toBe(false);
     expect(profile.leaves).toBe(5);
     expect(profile.musicOn).toBe(true);
-  });
-
-  it("sends a fresh v2 player through the new tutorial", () => {
-    stubStorage().set(KEY, JSON.stringify(v2Profile([])));
-    expect(loadProfile().tutorialDone).toBe(false);
   });
 
   it("keeps only leaves from a v1 profile", () => {

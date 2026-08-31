@@ -1,6 +1,6 @@
 import { Capacitor } from "@capacitor/core";
 import { SafeArea } from "capacitor-plugin-safe-area";
-import { ZERO_INSETS, type TInsets } from "../fit";
+import type { TInsets } from "../fit";
 
 // The native plugin reads view.safeAreaInsets, which stays correct on iOS
 // even with the status bar hidden — where env(safe-area-inset-top) reads 0.
@@ -47,8 +47,8 @@ function devInsets(): TInsets | null {
   if (!import.meta.env.DEV) return null;
   const value = new URLSearchParams(window.location.search).get("safearea");
   if (value === null) return null;
-  const [top, right, bottom, left] = value
+  const [top = 0, right = 0, bottom = 0, left = 0] = value
     .split(",")
     .map((part) => Number(part) || 0);
-  return { ...ZERO_INSETS, top, right, bottom, left };
+  return { top, right, bottom, left };
 }

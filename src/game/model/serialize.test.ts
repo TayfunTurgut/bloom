@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { createInitialState, placeFromTray, type TLevel } from "./rules";
 import { fromSnapshot, toSnapshot } from "./serialize";
-import { emptySaveState, saveStateSchema } from "../state/schema";
+import {
+  emptySaveState,
+  readSaveStateSchema,
+  SAVE_VERSION,
+  saveStateSchema,
+} from "../state/schema";
 import { cellIdFromXY } from "../id";
 
 const APPLE = "apple_happy";
@@ -241,11 +246,39 @@ describe("a scripted level", () => {
 });
 
 describe("an older save file", () => {
-  it("rejects a v5 save from the previous release", () => {
-    const v5 = { ...toSnapshot(played(), SKIN), version: 5 };
-    delete (v5 as { scriptIndex?: number }).scriptIndex;
+  const v5Save = () => {
+    const v5: Record<string, unknown> = {
+      ...toSnapshot(played(), SKIN),
+      version: 5,
+    };
+    delete v5.scriptIndex;
+    return v5;
+  };
 
-    expect(saveStateSchema.safeParse(v5).success).toBe(false);
+  it("carries a v5 save from the previous release forward", () => {
+    const parsed = readSaveStateSchema.safeParse(v5Save());
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.data?.version).toBe(SAVE_VERSION);
+    expect(parsed.data?.scriptIndex).toBe(0);
+    expect(parsed.data?.level).toBe(0);
+  });
+
+  it("keeps playing a v5 save that the current level still fits", () => {
+    const restored = fromSnapshot(
+      readSaveStateSchema.parse(v5Save()),
+      0,
+      level,
+    );
+
+    expect(restored).not.toBeNull();
+    expect(restored!.scriptIndex).toBe(0);
+    expect(restored!.tray).toHaveLength(3);
+  });
+
+  it("still writes the current version", () => {
+    expect(saveStateSchema.safeParse(v5Save()).success).toBe(false);
+    expect(toSnapshot(played(), SKIN).version).toBe(SAVE_VERSION);
   });
 
   it("fails the schema instead of loading half a game", () => {

@@ -39,6 +39,20 @@ export const saveStateSchema = z.object({
 export type TSaveState = z.infer<typeof saveStateSchema>;
 export type TPieceSnapshot = z.infer<typeof pieceSchema>;
 
+// 1.0.0 saves predate the scripted tray. Their levels carry no script, so a
+// zeroed cursor restores them exactly, and a player keeps their place on the
+// ladder instead of being sent back to the first level.
+const legacyV5Schema = saveStateSchema
+  .omit({ version: true, scriptIndex: true })
+  .extend({ version: z.literal(5) })
+  .transform((save): TSaveState => ({
+    ...save,
+    version: SAVE_VERSION,
+    scriptIndex: 0,
+  }));
+
+export const readSaveStateSchema = z.union([saveStateSchema, legacyV5Schema]);
+
 export const emptySaveState = (): TSaveState => ({
   version: SAVE_VERSION,
   level: 0,
