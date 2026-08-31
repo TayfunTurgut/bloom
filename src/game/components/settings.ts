@@ -237,14 +237,14 @@ export class CSettingsOverlay extends CContainer<TNone, TSettingsEvents> {
     const leaf = new Sprite(getAsset<Texture>("leaf-icon"));
     leaf.anchor.set(0.5);
     leaf.scale.set(40 / Math.max(leaf.width, leaf.height));
-    leaf.position.set(CX - 40, PANEL_TOP + 170);
+    leaf.position.set(CX - 40, PANEL_TOP + 150);
     content.addChild(leaf);
     this.balance = this.text(
       String(view.leaves),
       44,
       COLOR_FONT_FILL_BROWN,
       CX + 10,
-      PANEL_TOP + 170,
+      PANEL_TOP + 150,
     );
     this.balance.anchor.set(0, 0.5);
     content.addChild(this.balance);
