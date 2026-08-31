@@ -43,8 +43,9 @@ export const music = {
   stop() {
     getAsset<Sound | undefined>(MUSIC_ASSET_KEY)?.stop();
   },
-  setEnabled(on: boolean) {
-    if (on) music.start();
+  /** Starts or stops the track to match the current preference. */
+  sync() {
+    if (prefs().musicOn) music.start();
     else music.stop();
   },
 };

@@ -1,15 +1,17 @@
-import { Container } from "pixi.js";
+import { Container, type PointData } from "pixi.js";
 import { CCell, CCELL_HEIGHT, CCELL_WIDTH } from "./cell";
 import { CPiece } from "./piece";
 import { syncPieceViews, type TPiecePlacement } from "./pieces";
 import { CContainer, type TNone } from "../../engine/container";
 import { cellIdFromXY, xyFromCellId, type CellId } from "../id";
-import { isGoalComplete } from "../model/rules";
+import { isGoalComplete, isLiveCrop } from "../model/rules";
 import type { TGameState, TPiece } from "../model/types";
 
 export type TBoardEvents = {
   "board:cellClicked": [{ x: number; y: number }];
 };
+
+const HIGHLIGHT_RADIUS = CCELL_WIDTH * 0.62;
 
 export class CBoard extends CContainer<TNone, TBoardEvents> {
   private readonly rows: number;
@@ -55,10 +57,7 @@ export class CBoard extends CContainer<TNone, TBoardEvents> {
       this.pieces
         .get(piece.id)
         ?.setGoalHighlight(
-          piece.type === "GROWING" &&
-            piece.currentValue > 0 &&
-            !piece.rocked &&
-            pendingGoals.has(piece.assetKey),
+          isLiveCrop(piece) && pendingGoals.has(piece.assetKey),
         );
     }
   }
@@ -73,6 +72,16 @@ export class CBoard extends CContainer<TNone, TBoardEvents> {
     if (!this.playable.has(cellId)) return null;
     const { x, y } = xyFromCellId(cellId);
     return this.positionOf(x, y);
+  }
+
+  /** Where to ring a cell, in global space, at the board's drawn size. */
+  cellHighlight(cellId: CellId): { at: PointData; radius: number } | null {
+    const at = this.positionOfCell(cellId);
+    if (!at) return null;
+    return {
+      at: this.container.toGlobal(at),
+      radius: HIGHLIGHT_RADIUS * this.container.scale.x,
+    };
   }
 
   applyPlacement(state: TGameState, cellId: CellId) {

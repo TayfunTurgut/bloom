@@ -187,18 +187,17 @@ export const milestonesReached = (state: TGameState): number =>
   milestoneThresholds(state).filter((threshold) => state.score >= threshold)
     .length;
 
+/** A crop still in play: it can be fed, and feeding it can harvest it. */
+export const isLiveCrop = (piece: TPiece): boolean =>
+  piece.type === "GROWING" && piece.currentValue > 0 && !piece.rocked;
+
 export const growingAt = (
   state: TGameState,
   x: number,
   y: number,
 ): TPiece | null => {
   const piece = state.board.get(cellIdFromXY(x, y))?.piece;
-  return piece &&
-    piece.type === "GROWING" &&
-    piece.currentValue > 0 &&
-    !piece.rocked
-    ? piece
-    : null;
+  return piece && isLiveCrop(piece) ? piece : null;
 };
 
 const NEIGHBOR_OFFSETS: readonly [number, number][] = [

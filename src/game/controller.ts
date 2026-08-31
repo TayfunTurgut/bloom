@@ -350,8 +350,7 @@ export class CGameController extends CContainer {
   private async runBlockingMove(state: TGameState, report: TMoveReport) {
     const generation = this.generation;
     this.lockInput();
-    if (report.effects.some((effect) => effect.type === "PIECE_PLACED"))
-      sfx("pop");
+    sfx("pop");
     this.tray.render(state);
     const fed = report.effects.find((effect) => effect.type === "FED");
     for (const effect of report.effects) {
@@ -416,7 +415,7 @@ export class CGameController extends CContainer {
       if (effect.type !== "ROCK_BROKEN") continue;
       const at = this.board.positionOfCell(effect.cell);
       if (!at) continue;
-      void this.effects.vanish(at, 0, () => {});
+      void this.effects.vanish(at, 0);
     }
 
     this.panel.render(state);
@@ -474,23 +473,14 @@ export class CGameController extends CContainer {
       }
       return;
     }
-    if (step.action.kind === "place") {
-      const at = this.board.positionOfCell(step.action.cell);
-      if (at) {
-        const scale = this.board.container.scale.x;
-        this.coach.setTarget(
-          {
-            x: this.board.container.x + at.x * scale,
-            y: this.board.container.y + at.y * scale,
-          },
-          CCELL_WIDTH * 0.62 * scale,
-        );
-      }
-    } else {
-      const at = this.tray.swapButtonPosition();
+    const target =
+      step.action.kind === "place"
+        ? this.board.cellHighlight(step.action.cell)
+        : this.tray.swapButtonHighlight();
+    if (target) {
       this.coach.setTarget(
-        { x: this.tray.container.x + at.x, y: this.tray.container.y + at.y },
-        60,
+        this.levelContainer.toLocal(target.at),
+        target.radius,
       );
     }
     this.coach.setHint(step.hint);
@@ -508,7 +498,7 @@ export class CGameController extends CContainer {
     overlay.on("settings:musicToggled", (on) => {
       this.profile = { ...this.profile, musicOn: on };
       saveProfile(this.profile);
-      music.setEnabled(on);
+      music.sync();
     });
     overlay.on("settings:sfxToggled", (on) => {
       this.profile = { ...this.profile, sfxOn: on };

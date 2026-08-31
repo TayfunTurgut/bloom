@@ -1,10 +1,11 @@
-import { Graphics, Sprite, Texture } from "pixi.js";
+import { Graphics, Sprite, Texture, type PointData } from "pixi.js";
 import { CContainer, type TNone } from "../../engine/container";
 import { getAsset } from "../assets";
 import { CPiece, CPIECE_WIDTH } from "./piece";
 import { syncPieceViews, type TPiecePlacement } from "./pieces";
-import { CAnimations, now, tween, type TAnimation } from "./motion";
-import { COLOR_GOAL_PROGRESS_FILL, COLOR_TRAY_ARROW } from "../colors";
+import { CAnimations, tween } from "./motion";
+import { createPulseRing } from "./pulse";
+import { COLOR_TRAY_ARROW } from "../colors";
 import config from "../config";
 import { TRAY_SIZE } from "../model/rules";
 import type { TGameState } from "../model/types";
@@ -26,7 +27,6 @@ const SWAP_DURATION = 0.25;
 const SLIDE_DROP = 84;
 const SLIDE_DURATION = 0.15;
 const HIGHLIGHT_RADIUS = (CPIECE_WIDTH * TRAY_PIECE_SCALE) / 2 + 8;
-const HIGHLIGHT_PULSE_PERIOD_MS = 1200;
 
 export type TTrayEvents = {
   "tray:swapClicked": [];
@@ -36,7 +36,6 @@ export type TTrayEvents = {
 export class CTray extends CContainer<TNone, TTrayEvents> {
   private readonly pieces = new Map<number, CPiece>();
   private readonly animations = new CAnimations();
-  private readonly pieceAnims = new Map<number, TAnimation>();
   private readonly nextHighlight: Graphics;
 
   constructor() {
@@ -52,9 +51,9 @@ export class CTray extends CContainer<TNone, TTrayEvents> {
   }
 
   render(state: TGameState) {
-    // Any running slide or arc aims at a slot that may just have shifted, so
-    // cancel them all and let syncPieceViews snap to the authoritative slots.
-    for (const id of [...this.pieceAnims.keys()]) this.cancelPieceAnim(id);
+    // Every running slide and arc aims at a slot that may just have shifted,
+    // so drop them all and let syncPieceViews snap to the true slots.
+    this.animations.stopAll();
     const placements: TPiecePlacement[] = state.tray.map((piece, index) => ({
       piece,
       x: slotX(index),
@@ -86,22 +85,7 @@ export class CTray extends CContainer<TNone, TTrayEvents> {
         view.container.alpha = TRAY_PIECE_ALPHA * t;
       },
     });
-    this.trackPieceAnim(view.id, controls);
-  }
-
-  private trackPieceAnim(id: number, controls: TAnimation) {
-    this.cancelPieceAnim(id);
-    this.pieceAnims.set(id, controls);
-    this.animations.track(controls, () => {
-      if (this.pieceAnims.get(id) === controls) this.pieceAnims.delete(id);
-    });
-  }
-
-  private cancelPieceAnim(id: number) {
-    const controls = this.pieceAnims.get(id);
-    if (!controls) return;
-    this.pieceAnims.delete(id);
-    this.animations.stop(controls);
+    this.animations.track(controls);
   }
 
   activeCount(): number {
@@ -110,8 +94,12 @@ export class CTray extends CContainer<TNone, TTrayEvents> {
     return total;
   }
 
-  swapButtonPosition(): { x: number; y: number } {
-    return { x: SWAP_BUTTON_X, y: 0 };
+  /** Where to ring the swap button, in global space. */
+  swapButtonHighlight(): { at: PointData; radius: number } {
+    return {
+      at: this.container.toGlobal({ x: SWAP_BUTTON_X, y: 0 }),
+      radius: SWAP_BUTTON_SIZE * 0.72,
+    };
   }
 
   playSwap(aId: number, bId: number) {
@@ -124,7 +112,6 @@ export class CTray extends CContainer<TNone, TTrayEvents> {
 
   destroy() {
     this.animations.stopAll();
-    this.pieceAnims.clear();
     for (const view of this.pieces.values()) view.destroy();
     this.pieces.clear();
     this.container.destroy({ children: true });
@@ -142,7 +129,7 @@ export class CTray extends CContainer<TNone, TTrayEvents> {
         );
       },
     });
-    this.trackPieceAnim(view.id, controls);
+    this.animations.track(controls);
   }
 
   private createBackground() {
@@ -152,23 +139,9 @@ export class CTray extends CContainer<TNone, TTrayEvents> {
     this.container.addChild(sprite);
   }
 
-  // Marks the piece that will be placed next. Untracked by CAnimations on
-  // purpose: an endless pulse must not stall the idle() check that waits for
-  // activeCount to reach zero.
+  /** Marks the piece that will be placed next. */
   private createNextHighlight(): Graphics {
-    const ring = new Graphics()
-      .circle(0, 0, HIGHLIGHT_RADIUS)
-      .fill({ color: COLOR_GOAL_PROGRESS_FILL, alpha: 0.12 })
-      .circle(0, 0, HIGHLIGHT_RADIUS)
-      .stroke({ width: 6, color: COLOR_GOAL_PROGRESS_FILL });
-    ring.visible = false;
-    ring.onRender = () => {
-      if (!ring.visible) return;
-      const t = (now() % HIGHLIGHT_PULSE_PERIOD_MS) / HIGHLIGHT_PULSE_PERIOD_MS;
-      const wave = Math.sin(t * Math.PI * 2);
-      ring.alpha = 0.7 + 0.3 * wave;
-      ring.scale.set(1 + 0.04 * wave);
-    };
+    const ring = createPulseRing(HIGHLIGHT_RADIUS);
     this.container.addChild(ring);
     return ring;
   }

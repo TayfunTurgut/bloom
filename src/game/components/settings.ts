@@ -79,7 +79,7 @@ export class CSettingsOverlay extends CContainer<TNone, TSettingsEvents> {
   private musicToggle!: CheckBox;
   private sfxToggle!: CheckBox;
 
-  constructor(view: TSettingsView, initialTab: TSettingsTab = "settings") {
+  constructor(view: TSettingsView) {
     super();
 
     const dim = new Graphics()
@@ -113,7 +113,7 @@ export class CSettingsOverlay extends CContainer<TNone, TSettingsEvents> {
     close.on("pointertap", () => this.emit("settings:close"));
     this.panel.addChild(close);
 
-    this.buildTabs(view, initialTab);
+    this.buildTabs(view);
 
     const controls = tween(0, 1, {
       duration: 0.3,
@@ -139,7 +139,7 @@ export class CSettingsOverlay extends CContainer<TNone, TSettingsEvents> {
     this.container.destroy({ children: true });
   }
 
-  private buildTabs(view: TSettingsView, initialTab: TSettingsTab) {
+  private buildTabs(view: TSettingsView) {
     TABS.forEach(({ id, label }, index) => {
       const defaultView = new Sprite(getAsset<Texture>("btn-wide"));
       defaultView.setSize(TAB_W, TAB_H);
@@ -164,7 +164,7 @@ export class CSettingsOverlay extends CContainer<TNone, TSettingsEvents> {
     this.buildSettingsTab(view);
     this.buildSkinsTab(view);
     this.buildCreditsTab();
-    this.showTab(initialTab);
+    this.showTab("settings");
   }
 
   private showTab(active: TSettingsTab) {
@@ -175,9 +175,7 @@ export class CSettingsOverlay extends CContainer<TNone, TSettingsEvents> {
   }
 
   private content(id: TSettingsTab): Container {
-    const tab = this.tabs.get(id);
-    if (!tab) throw new Error(`unknown settings tab: ${id}`);
-    return tab.content;
+    return this.tabs.get(id)!.content;
   }
 
   private buildSettingsTab(view: TSettingsView) {

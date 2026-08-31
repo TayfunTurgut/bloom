@@ -11,18 +11,17 @@ export type TTutorialAction =
 
 export type TTutorialView = {
   step: 1 | 2 | 3;
-  steps: 3;
   action: TTutorialAction;
   hint: string;
 };
 
-export const TUTORIAL_MOVES = 3;
+const TUTORIAL_MOVES = 3;
 
 const view = (
   step: TTutorialView["step"],
   action: TTutorialAction,
   hint: string,
-): TTutorialView => ({ step, steps: 3, action, hint });
+): TTutorialView => ({ step, action, hint });
 
 const place = (cell: CellId): TTutorialAction => ({ kind: "place", cell });
 
