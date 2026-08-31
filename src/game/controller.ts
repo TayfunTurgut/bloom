@@ -32,6 +32,7 @@ import { buildGallery } from "./dev/gallery";
 import type { TGameState, TMoveReport } from "./model/types";
 import { saveSaveState, loadSaveState } from "./state";
 import { loadProfile, saveProfile } from "./state/profile";
+import { AUDIO_ASSET_KEYS, initSound, music, sfx } from "./sound";
 import type { AssetKey } from "../assetpack/assets";
 
 const STATIC_ASSET_KEYS: readonly AssetKey[] = [
@@ -94,12 +95,15 @@ export class CGameController extends CContainer {
     );
 
     await assets.load(
-      ["hud", "pieces", "anim", ...STATIC_ASSET_KEYS],
+      ["hud", "pieces", "anim", ...STATIC_ASSET_KEYS, ...AUDIO_ASSET_KEYS],
       (progress) => {
         progressBar.progress = progress * 100;
       },
     );
     progressBar.destroy();
+
+    initSound(() => ({ musicOn: true, sfxOn: true }));
+    music.start();
 
     app.stage.addChild(createBackground(app));
     onResize(app, (w, h) => this.onResize(w, h), this.container);
@@ -166,8 +170,10 @@ export class CGameController extends CContainer {
       }
       this.render(next);
       for (const effect of report.effects) {
-        if (effect.type === "TRAY_SWAPPED")
+        if (effect.type === "TRAY_SWAPPED") {
+          sfx("swap");
           this.tray.playSwap(effect.a, effect.b);
+        }
       }
     });
     this.render(state);
@@ -176,9 +182,9 @@ export class CGameController extends CContainer {
     this.layout(state.rows, state.columns);
 
     if (isLevelWon(state)) {
-      this.showLevelEnd(true, milestonesReached(state));
+      this.showLevelEnd(true, milestonesReached(state), { silent: true });
     } else if (isLevelFailed(state)) {
-      this.showLevelEnd(false, milestonesReached(state));
+      this.showLevelEnd(false, milestonesReached(state), { silent: true });
     } else {
       this.maybeShowLesson({ kind: "level-start", level: state.level });
     }
@@ -262,6 +268,7 @@ export class CGameController extends CContainer {
   }
 
   private runQuickMove(state: TGameState, report: TMoveReport) {
+    sfx("pop");
     this.tray.render(state);
     for (const effect of report.effects) {
       if (effect.type !== "PIECE_PLACED") continue;
@@ -292,6 +299,8 @@ export class CGameController extends CContainer {
   private async runBlockingMove(state: TGameState, report: TMoveReport) {
     const generation = this.generation;
     this.lockInput();
+    if (report.effects.some((effect) => effect.type === "PIECE_PLACED"))
+      sfx("pop");
     this.tray.render(state);
     const fed = report.effects.find((effect) => effect.type === "FED");
     for (const effect of report.effects) {
@@ -335,9 +344,10 @@ export class CGameController extends CContainer {
         }
         const delay = index * EFFECT_STAGGER;
         waits.push(
-          this.effects.vanish(at, delay, () =>
-            this.board.removePiece(effect.pieceId),
-          ),
+          this.effects.vanish(at, delay, () => {
+            sfx("match");
+            this.board.removePiece(effect.pieceId);
+          }),
         );
         if (effect.crop !== "GROWING") return;
         const goal = this.panel.goalGlobalPosition(effect.assetKey);
@@ -503,9 +513,14 @@ export class CGameController extends CContainer {
     );
   }
 
-  private showLevelEnd(won: boolean, milestones: number) {
+  private showLevelEnd(
+    won: boolean,
+    milestones: number,
+    opts?: { silent?: boolean },
+  ) {
     if (this.overlay) return;
     this.lockInput();
+    if (!opts?.silent) sfx(won ? "win" : "fail");
     const overlay = new CLevelEndOverlay(won, milestones);
     this.overlay = overlay;
     this.levelContainer.addChild(overlay.container);

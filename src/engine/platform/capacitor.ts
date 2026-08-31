@@ -4,7 +4,10 @@ import { App } from "@capacitor/app";
 import { SplashScreen } from "@capacitor/splash-screen";
 import { StatusBar } from "@capacitor/status-bar";
 
-export async function initPlatform(app: Application) {
+export async function initPlatform(
+  app: Application,
+  hooks?: { onPause?: () => void; onResume?: () => void },
+) {
   if (!Capacitor.isNativePlatform()) {
     return;
   }
@@ -13,8 +16,14 @@ export async function initPlatform(app: Application) {
     await StatusBar.hide();
   }
 
-  await App.addListener("pause", () => app.ticker.stop());
-  await App.addListener("resume", () => app.ticker.start());
+  await App.addListener("pause", () => {
+    app.ticker.stop();
+    hooks?.onPause?.();
+  });
+  await App.addListener("resume", () => {
+    app.ticker.start();
+    hooks?.onResume?.();
+  });
 }
 
 export async function notifySceneReady() {
