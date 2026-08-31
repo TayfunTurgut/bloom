@@ -14,11 +14,11 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* The canvas bleeds under the notch; the game reads the safe-area insets in
+   JS and keeps its content inside them (see engine/platform/safearea.ts). */
 #app {
   position: fixed;
   inset: 0;
-  padding: env(safe-area-inset-top) env(safe-area-inset-right)
-    env(safe-area-inset-bottom) env(safe-area-inset-left);
   display: flex;
   justify-content: center;
   align-items: center;

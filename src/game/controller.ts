@@ -4,6 +4,11 @@ import config from "./config";
 import { COLOR_BACKGROUND, COLOR_GOAL_PROGRESS_FILL } from "./colors";
 import { onResize } from "../engine/resize";
 import { CContainer } from "../engine/container";
+import { fitDesignBox, ZERO_INSETS, type TInsets } from "../engine/fit";
+import {
+  getSafeAreaInsets,
+  onSafeAreaChange,
+} from "../engine/platform/safearea";
 import type { IEngine } from "../engine/app";
 import { CGoalPanel } from "./components/goal/panel";
 import { CBoard } from "./components/board";
@@ -65,6 +70,7 @@ export class CGameController extends CContainer {
   private generation = 0;
   private presenting = false;
   private lastReport: TMoveReport | null = null;
+  private insets: TInsets = ZERO_INSETS;
   private readonly animations = new CAnimations();
 
   constructor(private readonly engine: IEngine<AssetKey>) {
@@ -106,6 +112,11 @@ export class CGameController extends CContainer {
     music.start();
 
     app.stage.addChild(createBackground(app));
+    this.insets = await getSafeAreaInsets();
+    onSafeAreaChange((insets) => {
+      this.insets = insets;
+      this.onResize(app.screen.width, app.screen.height);
+    });
     onResize(app, (w, h) => this.onResize(w, h), this.container);
     app.stage.addChild(this.container);
 
@@ -585,12 +596,9 @@ export class CGameController extends CContainer {
   }
 
   private onResize(w: number, h: number) {
-    const scale = Math.min(w / config.width, h / config.height);
-    this.container.scale.set(scale);
-    this.container.position.set(
-      (w - config.width * scale) * 0.5,
-      (h - config.height * scale) * 0.5,
-    );
+    const fit = fitDesignBox(w, h, this.insets, config.width, config.height);
+    this.container.scale.set(fit.scale);
+    this.container.position.set(fit.x, fit.y);
   }
 }
 
