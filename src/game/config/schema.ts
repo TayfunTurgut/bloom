@@ -7,6 +7,12 @@ const cellSchema = z.object({
   type: z.enum(["FILLED", "EMPTY"]).default("FILLED"),
   piece: assetKeySchema.optional(),
   value: z.number().int().min(1).max(12).optional(),
+  rocked: z.boolean().optional(),
+});
+
+const scriptEntrySchema = z.object({
+  piece: assetKeySchema,
+  value: z.number().int().min(1).max(12),
 });
 
 const goalSchema = z.object({
@@ -20,6 +26,7 @@ export const levelSchema = z
     columns: z.number().int().min(1),
     goals: z.array(goalSchema).min(1).max(4),
     pieces: z.array(z.string() as z.ZodType<AssetKey>).min(1),
+    script: z.array(scriptEntrySchema).optional(),
   })
   .refine((level) => level.data.length % level.columns === 0, {
     error:
@@ -51,6 +58,14 @@ export const levelSchema = z
   .refine(
     (level) => level.goals.every((goal) => level.pieces.includes(goal.type)),
     { error: "a goal's type must come from the level's piece pool" },
+  )
+  .refine((level) => level.data.every((cell) => !cell.rocked || cell.piece), {
+    error: "a rock needs a piece to sit on",
+  })
+  .refine(
+    (level) =>
+      (level.script ?? []).every((entry) => level.pieces.includes(entry.piece)),
+    { error: "a script piece must come from the level's piece pool" },
   );
 
 export const configSchema = z.object({

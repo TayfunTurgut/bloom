@@ -176,7 +176,78 @@ describe("an authored growing crop", () => {
   });
 });
 
+describe("a rocked authored crop", () => {
+  const rockedLevel: TLevel = {
+    ...level,
+    data: level.data.map((entry, index) =>
+      index === 4 ? cell({ piece: CARROT, value: 6, rocked: true }) : entry,
+    ),
+  };
+
+  it("round-trips its rock, which still refuses to be fed", () => {
+    const state = createInitialState(0, rockedLevel, 999);
+    placeFromTray(state, 0, 0);
+    const snapshot = toSnapshot(state, SKIN);
+
+    const restored = fromSnapshot(snapshot, 0, rockedLevel);
+
+    expect(restored).not.toBeNull();
+    expect(restored!.board.get(cellIdFromXY(1, 1))!.piece?.rocked).toBe(true);
+    expect(toSnapshot(restored!, SKIN)).toEqual(snapshot);
+
+    const report = placeFromTray(restored!, 2, 1);
+    expect(report?.effects.some((effect) => effect.type === "FED")).toBe(false);
+  });
+
+  it("rejects a rock riding a piece that is not growing", () => {
+    const state = createInitialState(0, rockedLevel, 999);
+    const snapshot = toSnapshot(state, SKIN);
+    snapshot.tray[0].rocked = true;
+
+    expect(fromSnapshot(snapshot, 0, rockedLevel)).toBeNull();
+  });
+});
+
+describe("a scripted level", () => {
+  const scriptedLevel: TLevel = {
+    ...level,
+    script: [6, 2, 4, 9, 3].map((value) => ({ piece: APPLE, value })),
+  };
+
+  it("round-trips the script cursor and keeps dealing in order", () => {
+    const state = createInitialState(0, scriptedLevel, 999);
+    placeFromTray(state, 1, 1);
+    const snapshot = toSnapshot(state, SKIN);
+    expect(snapshot.scriptIndex).toBe(4);
+
+    const restored = fromSnapshot(snapshot, 0, scriptedLevel);
+    expect(restored).not.toBeNull();
+    expect(toSnapshot(restored!, SKIN)).toEqual(snapshot);
+
+    placeFromTray(state, 0, 0);
+    placeFromTray(restored!, 0, 0);
+    expect(toSnapshot(restored!, SKIN)).toEqual(toSnapshot(state, SKIN));
+  });
+
+  it("rejects a cursor that has run past the level's script", () => {
+    const snapshot = toSnapshot(
+      createInitialState(0, scriptedLevel, 999),
+      SKIN,
+    );
+    snapshot.scriptIndex = 6;
+
+    expect(fromSnapshot(snapshot, 0, scriptedLevel)).toBeNull();
+  });
+});
+
 describe("an older save file", () => {
+  it("rejects a v5 save from the previous release", () => {
+    const v5 = { ...toSnapshot(played(), SKIN), version: 5 };
+    delete (v5 as { scriptIndex?: number }).scriptIndex;
+
+    expect(saveStateSchema.safeParse(v5).success).toBe(false);
+  });
+
   it("fails the schema instead of loading half a game", () => {
     expect(saveStateSchema.safeParse({ level: 0 }).success).toBe(false);
   });

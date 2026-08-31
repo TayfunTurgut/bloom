@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { AssetKey } from "../../assetpack/assets";
 import { DEFAULT_SKIN_ID } from "../config/skins";
 
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
 
 const assetKeySchema = z.custom<AssetKey>((v) => typeof v === "string");
 
@@ -12,6 +12,7 @@ const pieceSchema = z.object({
   type: z.enum(["SEED", "GROWING", "SUPPLY"]),
   startingValue: z.number().int().min(1),
   currentValue: z.number().int().min(0),
+  rocked: z.boolean().optional(),
 });
 
 const goalSchema = z.object({
@@ -28,6 +29,7 @@ export const saveStateSchema = z.object({
   score: z.number().int().min(0),
   rng: z.number().int(),
   nextPieceId: z.number().int().min(1),
+  scriptIndex: z.number().int().min(0),
   goals: z.array(goalSchema),
   columns: z.number().int().min(1),
   board: z.array(pieceSchema.nullable()),
@@ -45,6 +47,7 @@ export const emptySaveState = (): TSaveState => ({
   score: 0,
   rng: 0,
   nextPieceId: 1,
+  scriptIndex: 0,
   goals: [],
   columns: 1,
   board: [],

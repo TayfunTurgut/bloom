@@ -9,7 +9,10 @@ export type TPiece = {
   type: TCropState;
   startingValue: number;
   currentValue: number;
+  rocked?: boolean;
 };
+
+export type TScriptEntry = { piece: AssetKey; value: number };
 
 export type TCell = { piece: TPiece | null };
 
@@ -26,6 +29,8 @@ export type TGameState = {
   rows: number;
   columns: number;
   pieces: readonly AssetKey[];
+  script: readonly TScriptEntry[];
+  scriptIndex: number;
   rng: number;
   nextPieceId: number;
   goals: TGoal[];
@@ -53,6 +58,7 @@ export type TEffect =
       assetKey: AssetKey;
       crop: "GROWING" | "SUPPLY";
     }
+  | { type: "ROCK_BROKEN"; cell: CellId; pieceId: number }
   | { type: "SCORED"; amount: number; total: number }
   | { type: "MILESTONE_REACHED"; index: number }
   | { type: "TRAY_SWAPPED"; a: number; b: number }

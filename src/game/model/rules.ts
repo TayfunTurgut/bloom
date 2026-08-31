@@ -33,6 +33,8 @@ export const createInitialState = (
     rows,
     columns,
     pieces: level.pieces,
+    script: level.script ?? [],
+    scriptIndex: 0,
     rng: seed,
     nextPieceId: 1,
     goals: level.goals.map((goal) => ({
@@ -53,6 +55,7 @@ export const createInitialState = (
       if (spec.piece) {
         const piece = createPiece(state, spec.piece, spec.value);
         piece.type = "GROWING";
+        if (spec.rocked) piece.rocked = true;
         cell.piece = piece;
       }
       state.board.set(cellIdFromXY(x, y), cell);
@@ -145,8 +148,16 @@ export const swapTray = (state: TGameState): TMoveReport | null => {
 
 export const refillTray = (state: TGameState) => {
   while (state.tray.length < TRAY_SIZE) {
-    state.tray.unshift(createPiece(state));
+    state.tray.unshift(drawPiece(state));
   }
+};
+
+// Tray refills consume the level's authored script before the rng takes over.
+const drawPiece = (state: TGameState): TPiece => {
+  const entry = state.script[state.scriptIndex];
+  if (!entry) return createPiece(state);
+  state.scriptIndex += 1;
+  return createPiece(state, entry.piece, entry.value);
 };
 
 export const goalRemaining = (goal: TGoal): number =>
@@ -182,7 +193,10 @@ export const growingAt = (
   y: number,
 ): TPiece | null => {
   const piece = state.board.get(cellIdFromXY(x, y))?.piece;
-  return piece && piece.type === "GROWING" && piece.currentValue > 0
+  return piece &&
+    piece.type === "GROWING" &&
+    piece.currentValue > 0 &&
+    !piece.rocked
     ? piece
     : null;
 };
@@ -229,16 +243,25 @@ const harvest = (state: TGameState, cellId: CellId, effects: TEffect[]) => {
   for (const [dx, dy] of NEIGHBOR_OFFSETS) {
     const neighborId = cellIdFromXY(x + dx, y + dy);
     const neighbor = state.board.get(neighborId);
-    const supply = neighbor?.piece;
-    if (!neighbor || !supply || supply.type !== "SUPPLY") continue;
-    neighbor.piece = null;
-    effects.push({
-      type: "HARVESTED",
-      cell: neighborId,
-      pieceId: supply.id,
-      assetKey: supply.assetKey,
-      crop: "SUPPLY",
-    });
+    const occupant = neighbor?.piece;
+    if (!neighbor || !occupant) continue;
+    if (occupant.type === "SUPPLY") {
+      neighbor.piece = null;
+      effects.push({
+        type: "HARVESTED",
+        cell: neighborId,
+        pieceId: occupant.id,
+        assetKey: occupant.assetKey,
+        crop: "SUPPLY",
+      });
+    } else if (occupant.rocked) {
+      delete occupant.rocked;
+      effects.push({
+        type: "ROCK_BROKEN",
+        cell: neighborId,
+        pieceId: occupant.id,
+      });
+    }
   }
 };
 

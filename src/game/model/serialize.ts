@@ -24,6 +24,7 @@ export const toSnapshot = (state: TGameState, skinId: string): TSaveState => {
     score: state.score,
     rng: state.rng,
     nextPieceId: state.nextPieceId,
+    scriptIndex: state.scriptIndex,
     goals: state.goals.map((goal) => ({ ...goal })),
     columns: state.columns,
     board,
@@ -52,12 +53,17 @@ export const fromSnapshot = (
   );
   if (!goalsMatch) return null;
 
+  const script = level.script ?? [];
+  if (snapshot.scriptIndex > script.length) return null;
+
   const pool = new Set<string>(level.pieces);
   const boardPieces = snapshot.board.filter(
     (piece): piece is TPieceSnapshot => piece !== null,
   );
   const pieces = [...snapshot.tray, ...boardPieces];
   if (!pieces.every((piece) => pool.has(piece.assetKey))) return null;
+  if (pieces.some((piece) => piece.rocked && piece.type !== "GROWING"))
+    return null;
 
   const board = new Map<CellId, TCell>();
   for (let y = 0; y < rows; y++) {
@@ -79,6 +85,8 @@ export const fromSnapshot = (
     rows,
     columns,
     pieces: level.pieces,
+    script,
+    scriptIndex: snapshot.scriptIndex,
     rng: snapshot.rng,
     nextPieceId: pieces.reduce(
       (max, piece) => Math.max(max, piece.id + 1),

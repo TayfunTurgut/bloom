@@ -456,6 +456,228 @@ describe("a level with holes", () => {
   });
 });
 
+describe("scripted pieces", () => {
+  const scripted = (values: number[]): TLevel => ({
+    ...level,
+    script: values.map((value) => ({ piece: APPLE, value })),
+  });
+
+  it("deals the script into the tray so the first entry is played first", () => {
+    const state = createInitialState(0, scripted([6, 2, 4]), SEED);
+
+    expect(state.tray.map((piece) => piece.id)).toEqual([3, 2, 1]);
+    expect(state.tray.map((piece) => piece.currentValue)).toEqual([4, 2, 6]);
+    expect(state.tray[state.tray.length - 1].currentValue).toBe(6);
+    expect(state.scriptIndex).toBe(3);
+  });
+
+  it("keeps drawing from the script on refills until it runs out", () => {
+    const state = createInitialState(0, scripted([6, 2, 4, 9]), SEED);
+
+    placeFromTray(state, 0, 0);
+
+    expect(state.tray[0].currentValue).toBe(9);
+    expect(state.scriptIndex).toBe(4);
+  });
+
+  it("hands over to the seeded rng once the script is exhausted", () => {
+    const run = () => {
+      const state = createInitialState(0, scripted([6, 2, 4]), SEED);
+      placeFromTray(state, 0, 0);
+      placeFromTray(state, 2, 0);
+      return state.tray.map((piece) => [piece.assetKey, piece.currentValue]);
+    };
+
+    expect(run()).toEqual(run());
+    const state = createInitialState(0, scripted([6, 2, 4]), SEED);
+    placeFromTray(state, 0, 0);
+    expect(
+      state.tray.every((piece) => level.pieces.includes(piece.assetKey)),
+    ).toBe(true);
+  });
+
+  it("never lets a preplaced piece consume a script entry", () => {
+    const authored: TLevel = {
+      ...scripted([6, 2, 4]),
+      data: level.data.map((entry, index) =>
+        index === 4 ? cell({ piece: CARROT, value: 5 }) : entry,
+      ),
+    };
+    const state = createInitialState(0, authored, SEED);
+
+    expect(at(state, 1, 1)?.id).toBe(1);
+    expect(at(state, 1, 1)?.currentValue).toBe(5);
+    expect(state.tray.map((piece) => piece.currentValue)).toEqual([4, 2, 6]);
+    expect(state.scriptIndex).toBe(3);
+  });
+});
+
+describe("rocked pieces", () => {
+  const rocked = (over: Partial<TLevel["data"][number]> = {}): TLevel => ({
+    ...level,
+    data: level.data.map((entry, index) =>
+      index === 4
+        ? cell({ piece: CARROT, value: 6, rocked: true, ...over })
+        : entry,
+    ),
+  });
+
+  it("starts an authored rocked crop growing with its rock in place", () => {
+    const state = createInitialState(0, rocked(), SEED);
+
+    const piece = at(state, 1, 1);
+    expect(piece?.type).toBe("GROWING");
+    expect(piece?.rocked).toBe(true);
+    expect(piece?.currentValue).toBe(6);
+  });
+
+  it("sprouts a crop whose only growing neighbour is rocked", () => {
+    const state = createInitialState(0, rocked(), SEED);
+
+    stack(state, { currentValue: 3 });
+    const report = placeFromTray(state, 1, 0);
+
+    expect(at(state, 1, 0)?.type).toBe("GROWING");
+    expect(report?.effects.some((effect) => effect.type === "FED")).toBe(false);
+    expect(at(state, 1, 1)?.currentValue).toBe(6);
+  });
+
+  it("feeds a weaker normal neighbour over a stronger rocked one", () => {
+    const state = createInitialState(0, rocked({ value: 9 }), SEED);
+
+    stack(state, { currentValue: 3 });
+    placeFromTray(state, 0, 0);
+    stack(state, { currentValue: 2 });
+    placeFromTray(state, 0, 1);
+
+    expect(at(state, 0, 0)?.currentValue).toBe(1);
+    expect(at(state, 1, 1)?.currentValue).toBe(9);
+    expect(at(state, 1, 1)?.rocked).toBe(true);
+  });
+
+  it("breaks the rock when an adjacent crop is harvested", () => {
+    const state = createInitialState(0, rocked(), SEED);
+    const rockId = at(state, 1, 1)?.id;
+
+    stack(state, { currentValue: 5 });
+    placeFromTray(state, 0, 1);
+    stack(state, { currentValue: 5 });
+    const report = placeFromTray(state, 0, 0);
+
+    expect(report?.effects).toContainEqual({
+      type: "ROCK_BROKEN",
+      cell: cellIdFromXY(1, 1),
+      pieceId: rockId,
+    });
+    expect(at(state, 1, 1)?.rocked).toBeFalsy();
+
+    stack(state, { currentValue: 2 });
+    const feed = placeFromTray(state, 1, 0);
+    expect(feed?.effects).toContainEqual(
+      expect.objectContaining({ type: "FED", to: cellIdFromXY(1, 1) }),
+    );
+    expect(at(state, 1, 1)?.currentValue).toBe(4);
+  });
+
+  it("orders the break after the harvest cluster's supply sweep", () => {
+    const state = createInitialState(0, rocked(), SEED);
+
+    stack(state, { currentValue: 5 });
+    placeFromTray(state, 0, 1);
+    stack(state, { currentValue: 5 });
+    const report = placeFromTray(state, 0, 0);
+
+    expect(report?.effects.map((effect) => effect.type)).toEqual([
+      "PIECE_PLACED",
+      "FED",
+      "HARVESTED",
+      "SCORED",
+      "MILESTONE_REACHED",
+      "HARVESTED",
+      "ROCK_BROKEN",
+    ]);
+  });
+
+  it("leaves a rock untouched by a harvest that is not adjacent", () => {
+    const farRock: TLevel = {
+      ...level,
+      data: level.data.map((entry, index) =>
+        index === 8 ? cell({ piece: CARROT, value: 6, rocked: true }) : entry,
+      ),
+    };
+    const state = createInitialState(0, farRock, SEED);
+
+    stack(state, { currentValue: 5 });
+    placeFromTray(state, 0, 0);
+    stack(state, { currentValue: 5 });
+    const report = placeFromTray(state, 0, 1);
+
+    expect(at(state, 0, 0)).toBeNull();
+    expect(
+      report?.effects.some((effect) => effect.type === "ROCK_BROKEN"),
+    ).toBe(false);
+    expect(at(state, 2, 2)?.rocked).toBe(true);
+  });
+
+  it("never breaks the same rock twice", () => {
+    const state = createInitialState(0, rocked(), SEED);
+
+    stack(state, { currentValue: 5 });
+    placeFromTray(state, 0, 1);
+    stack(state, { currentValue: 5 });
+    placeFromTray(state, 0, 0);
+    expect(at(state, 1, 1)?.rocked).toBeFalsy();
+
+    stack(state, { currentValue: 6 });
+    const pop = placeFromTray(state, 1, 0);
+    expect(at(state, 1, 1)).toBeNull();
+    expect(pop?.effects.some((effect) => effect.type === "ROCK_BROKEN")).toBe(
+      false,
+    );
+  });
+
+  it("counts a rocked cell as occupied when the board fills", () => {
+    const rockedRow: TLevel = {
+      ...rowLevel,
+      data: rowLevel.data.map((entry, index) =>
+        index === 2 ? cell({ piece: CARROT, value: 6, rocked: true }) : entry,
+      ),
+    };
+    const state = createInitialState(0, rockedRow, SEED);
+
+    stack(state, { assetKey: CARROT, currentValue: 12 });
+    placeFromTray(state, 0, 0);
+    stack(state, { assetKey: CARROT, currentValue: 5 });
+    const filling = placeFromTray(state, 1, 0);
+
+    expect(
+      filling?.effects.filter((effect) => effect.type === "LEVEL_FAILED"),
+    ).toEqual([{ type: "LEVEL_FAILED" }]);
+  });
+
+  it("advances goals normally once a freed goal crop is harvested", () => {
+    const state = createInitialState(
+      0,
+      rocked({ piece: APPLE, value: 2 }),
+      SEED,
+    );
+    const goal = state.goals[0];
+
+    stack(state, { currentValue: 5 });
+    placeFromTray(state, 0, 1);
+    stack(state, { currentValue: 5 });
+    placeFromTray(state, 0, 0);
+    expect(goal.progress).toBe(1);
+
+    stack(state, { currentValue: 2 });
+    const pop = placeFromTray(state, 1, 0);
+
+    expect(at(state, 1, 1)).toBeNull();
+    expect(goal.progress).toBe(2);
+    expect(pop?.effects.some((effect) => effect.type === "SCORED")).toBe(true);
+  });
+});
+
 describe("swapTray", () => {
   it("swaps the two rightmost pieces for free", () => {
     const state = createInitialState(0, level, SEED);

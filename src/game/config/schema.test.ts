@@ -68,6 +68,49 @@ describe("authored cells", () => {
   });
 });
 
+describe("rocked cells", () => {
+  const withCell = (cell: TLevelInput["data"][number]) =>
+    accepts({ data: [cell, ...cells(8)], columns: 3 });
+
+  it("accepts a rocked cell that carries a piece", () => {
+    expect(withCell({ piece: "apple_happy", value: 4, rocked: true })).toBe(
+      true,
+    );
+    expect(withCell({ piece: "apple_happy", rocked: true })).toBe(true);
+  });
+
+  it("rejects a rock with no piece under it", () => {
+    expect(withCell({ rocked: true })).toBe(false);
+  });
+
+  it("rejects a rock on a hole", () => {
+    expect(withCell({ type: "EMPTY", rocked: true })).toBe(false);
+  });
+});
+
+describe("scripted pieces", () => {
+  it("accepts a script drawn from the level's piece pool", () => {
+    expect(accepts({ script: [{ piece: "apple_happy", value: 6 }] })).toBe(
+      true,
+    );
+  });
+
+  it("rejects a script piece outside the pool", () => {
+    expect(accepts({ script: [{ piece: "carrot_happy", value: 6 }] })).toBe(
+      false,
+    );
+  });
+
+  it("rejects a script value outside the 1-12 range", () => {
+    expect(accepts({ script: [{ piece: "apple_happy", value: 0 }] })).toBe(
+      false,
+    );
+    expect(accepts({ script: [{ piece: "apple_happy", value: 13 }] })).toBe(
+      false,
+    );
+  });
+});
+
 describe("goals", () => {
   it("rejects a goal type that is not in the level's piece pool", () => {
     expect(accepts({ goals: [{ type: "carrot_happy", count: 1 }] })).toBe(
