@@ -44,4 +44,81 @@ describe("generateLevel", () => {
       expect(new Set(candidate.crops).size).toBe(candidate.crops.length);
     }
   });
+
+  it("keeps the easiest tier on small boards", () => {
+    for (let index = 0; index < EASY_LEVELS; index++) {
+      const level = generateLevel(index, skin);
+      const rows = level.data.length / level.columns;
+      expect(level.columns).toBeLessThanOrEqual(4);
+      expect(rows).toBeLessThanOrEqual(4);
+    }
+  });
+});
+
+describe("rocked generation", () => {
+  const rockedIndices = (level: ReturnType<typeof generateLevel>) =>
+    level.data.flatMap((cell, index) => (cell.rocked ? [index] : []));
+
+  const neighborsOf = (
+    index: number,
+    columns: number,
+    total: number,
+  ): number[] => {
+    const x = index % columns;
+    const y = Math.floor(index / columns);
+    const rows = total / columns;
+    const found: number[] = [];
+    if (x > 0) found.push(index - 1);
+    if (x < columns - 1) found.push(index + 1);
+    if (y > 0) found.push(index - columns);
+    if (y < rows - 1) found.push(index + columns);
+    return found;
+  };
+
+  it("leaves the first two tiers rock-free", () => {
+    for (const index of [0, 3, 9, 10, 35, 69]) {
+      expect(rockedIndices(generateLevel(index, skin))).toEqual([]);
+    }
+  });
+
+  it("seeds one to three well-formed rocks from the third tier up", () => {
+    let total = 0;
+    for (let index = 70; index < 1000; index += 37) {
+      const level = generateLevel(index, skin);
+      const rocks = rockedIndices(level);
+      total += rocks.length;
+      expect(rocks.length).toBeLessThanOrEqual(3);
+
+      for (const rock of rocks) {
+        const cell = level.data[rock];
+        expect(cell.type).toBe("FILLED");
+        expect(cell.piece).toBeDefined();
+        expect(level.pieces).toContain(cell.piece);
+        expect(cell.value).toBeGreaterThanOrEqual(2);
+        expect(cell.value).toBeLessThanOrEqual(6);
+      }
+
+      const rockSet = new Set(rocks);
+      const playable = (i: number) =>
+        level.data[i].type === "FILLED" && !rockSet.has(i);
+      for (const rock of rocks) {
+        const near = neighborsOf(rock, level.columns, level.data.length);
+        expect(near.some((i) => rockSet.has(i))).toBe(false);
+        expect(
+          near.some(
+            (j) =>
+              playable(j) &&
+              neighborsOf(j, level.columns, level.data.length).some(
+                (k) => k !== rock && playable(k),
+              ),
+          ),
+        ).toBe(true);
+      }
+    }
+    expect(total).toBeGreaterThan(0);
+  });
+
+  it("deals the same rocks for the same index", () => {
+    expect(generateLevel(200, skin)).toEqual(generateLevel(200, skin));
+  });
 });
