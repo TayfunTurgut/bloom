@@ -61,9 +61,8 @@ const CREDITS = [
   "Sound effects — TT Soundeffects",
   "by sablebloom (sablebloom.itch.io)",
   "",
-  'Music — "Farm Music"',
-  "from OpenGameArt",
-  "(opengameart.org/content/farm-music)",
+  'Music — "Farm Music" by migfus20',
+  "OpenGameArt, OGA-BY 4.0",
   "",
   "Sprout © 2026 Tayfun Turgut",
 ].join("\n");
