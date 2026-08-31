@@ -36,11 +36,23 @@ of board templates (`config/templates.ts`) across a 1,000-level difficulty ramp
 (`config/generate.ts`); the first ten are gentle. Finishing all 1,000 grants a
 leaf bonus and then reshuffles the post-tutorial pool endlessly. Every level
 draws its crops from the active skin — a fixed palette of readable crops
-(`config/skins.ts`) — and the tray's settings button opens a shop that sells
-alternate skins for leaves. One-time coaching popups (`components/lessons.ts`)
-teach the mechanics as they first become relevant: planting at the start of
-level one, feeding after the first crop sprouts, the tray swap button after
-the first feed, and the goals at the start of level two.
+(`config/skins.ts`) — and the tray's settings button opens a window with the
+sound toggles, that shop, and the asset credits.
+
+From the third tier on, a level can start with a crop pinned under a rock
+(`rocked` in `config/schema.ts`). A rocked crop cannot be fed and does not
+count as a growing neighbour, so a crop played beside it sprouts instead;
+harvesting anything cardinally adjacent breaks the rock and the crop plays
+normally from then on. The generator only ever places a rock that keeps room
+to be freed.
+
+The first level is authored rather than generated (`config/tutorial.ts`): a
+3x3 board dealt a fixed run of crops, which `model/tutorial.ts` reads to
+direct the player through planting, swapping, feeding and harvesting. The
+director is pure and derives its step from the move count and the tray, so a
+save restored mid-tutorial resumes on the right step. The controller draws its
+target as a pulsing ring (`components/coach.ts`) and ignores every input but
+the one it asks for, leaving the rules untouched.
 
 A move returns a `TMoveReport`: an ordered log of what happened (`SPROUTED`,
 `FED`, `HARVESTED`, `SCORED`, …). The state is still the whole truth of what
@@ -54,6 +66,20 @@ Every animation runs through `tween` in `components/motion.ts`, which hands
 they left off. Celebration rain uses one `ParticleContainer` per crop texture,
 because a container batches a single texture.
 
+Only the reward beat — a harvest, a won or failed level — holds the player's
+input. A plant or a feed draws at once, so crops can be placed back to back
+while the drains from earlier moves are still in flight. Because a drain lasts
+longer the more it carries, a later feed can land before an earlier one, and
+the controller draws only the newest value claimed for a crop.
+
+The canvas fills the screen and the game reads the device's safe-area insets
+through `engine/platform/safearea.ts`, fitting the 720x1280 design box inside
+them (`engine/fit.ts`). The insets come from the native plugin rather than
+`env(safe-area-inset-*)`, which a webview reports as zero once the status bar
+is hidden. Sound plays through `@pixi/sound` (`game/sound.ts`), honouring the
+profile's toggles; AssetPack's ffmpeg pipe transcodes `src/assets/audio/`, and
+the music track loads after the game is already playable.
+
 ## Develop
 
 ```bash
@@ -63,12 +89,13 @@ pnpm dev        # vite dev server on :8080
 ```
 
 Dev builds accept `?seed=<n>` to fix the tray RNG, `?level=<n>` to boot a
-specific level, and `?gallery` to render every active-skin crop on a shared
-baseline alongside the growth stages — a quick visual check for readability and
-alignment. They also expose `window.__sprout` for scripted testing: `state()`,
+specific level, `?safearea=<top,right,bottom,left>` to stand in for a device's
+insets in the browser, and `?gallery` to render every active-skin crop on a
+shared baseline alongside the growth stages — a quick visual check for
+readability and alignment. They also expose `window.__sprout` for scripted testing: `state()`,
 `lastReport()`, `place(x, y)`, `swap()`, `goToLevel(n)`, `setSkin(id)`,
-`dismissTutorial()` — clears an open coaching popup — and
-`idle()` — a promise that resolves once the board, tray and effect animations
+`tutorialStep()` — the step the tutorial director is asking for, or `null` —
+and `idle()` — a promise that resolves once the board, tray and effect animations
 settle, so a script can drive a move and screenshot a deterministic frame. All
 of it is stripped from production builds.
 
@@ -127,6 +154,10 @@ Archive → Distribute App ▸ App Store Connect. iPad is a separate review surf
 — test and screenshot both device families (or declare iPhone-only).
 
 Device smoke checklist: splash → progress bar → board; status bar hidden; safe
-areas respected (notch + home indicator, both orientations); taps place pieces;
-backgrounding pauses the ticker and every animation with it; memory well under
-~300 MB in Xcode's gauge.
+areas respected — the goal panel clears the notch, the background fills behind
+it, and rotating and back re-fits (check a home-button device too); taps place
+pieces, and placing several quickly leaves one crop per tray slot; music starts
+on the first tap and both toggles survive a relaunch; backgrounding pauses the
+ticker, every animation and the audio with it; a fresh install opens on the
+guided tutorial while an upgrade keeps its level, leaves and skins; memory well
+under ~300 MB in Xcode's gauge.
