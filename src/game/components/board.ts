@@ -57,6 +57,7 @@ export class CBoard extends CContainer<TNone, TBoardEvents> {
         ?.setGoalHighlight(
           piece.type === "GROWING" &&
             piece.currentValue > 0 &&
+            !piece.rocked &&
             pendingGoals.has(piece.assetKey),
         );
     }

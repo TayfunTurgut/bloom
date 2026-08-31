@@ -19,6 +19,7 @@ const GOAL_PULSE_AMPLITUDE = 0.025;
 export class CPiece extends CContainer<{
   sprite: Sprite;
   growth: Sprite;
+  rock: Sprite;
   value: Text;
 }> {
   readonly id: number;
@@ -50,6 +51,18 @@ export class CPiece extends CContainer<{
     );
     growth.anchor.set(0.5);
     this.addNamedChild("growth", growth);
+
+    const rock = new Sprite(getAsset<Texture>(rockTextureFor(piece.id)));
+    rock.anchor.set(0.5);
+    const rockSource = rock.texture.orig;
+    rock.scale.set(
+      Math.min(
+        (CPIECE_WIDTH * 0.8) / rockSource.width,
+        (CPIECE_HEIGHT * 0.8) / rockSource.height,
+      ),
+    );
+    rock.position.set(CPIECE_WIDTH * 0.12, CPIECE_HEIGHT * 0.18);
+    this.addNamedChild("rock", rock);
 
     const text = new Text({
       text: piece.currentValue,
@@ -120,6 +133,7 @@ export class CPiece extends CContainer<{
   private apply(piece: TPiece) {
     const sprite = this.getChildByLabel("sprite");
     const growth = this.getChildByLabel("growth");
+    const rock = this.getChildByLabel("rock");
     const text = this.getChildByLabel("value");
 
     sprite.tint = piece.type === "SUPPLY" ? SUPPLY_TINT : 0xffffff;
@@ -128,6 +142,7 @@ export class CPiece extends CContainer<{
       growth.texture = getAsset<Texture>(growthTextureFor(piece.currentValue));
       growth.setSize(CCELL_WIDTH - CCELL_GAP, CCELL_HEIGHT - CCELL_GAP);
     }
+    rock.visible = piece.rocked === true;
     text.visible = piece.type !== "SUPPLY";
     text.text = piece.currentValue;
   }
@@ -151,3 +166,8 @@ const growthTextureFor = (value: number): AssetKey => {
   if (value >= 4) return "block2";
   return "block3";
 };
+
+const ROCK_TEXTURES: readonly AssetKey[] = ["rock1", "rock2", "rock3"];
+
+const rockTextureFor = (id: number): AssetKey =>
+  ROCK_TEXTURES[id % ROCK_TEXTURES.length];

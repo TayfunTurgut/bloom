@@ -384,6 +384,14 @@ export class CGameController extends CContainer {
       if (generation !== this.generation) return;
     }
 
+    for (const effect of report.effects) {
+      if (effect.type !== "ROCK_BROKEN") continue;
+      const at = this.board.positionOfCell(effect.cell);
+      if (!at) continue;
+      sfx("pop");
+      void this.effects.vanish(at, 0, () => {});
+    }
+
     this.panel.render(state);
     for (const effect of report.effects) {
       if (effect.type === "MILESTONE_REACHED") this.awardLeaf(effect.index);
