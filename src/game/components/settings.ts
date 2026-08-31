@@ -1,4 +1,5 @@
 import { Container, Graphics, Sprite, Text, Texture } from "pixi.js";
+import { CheckBox, FancyButton } from "@pixi/ui";
 import { CContainer, type TNone } from "../../engine/container";
 import { getAsset } from "../assets";
 import { CAnimations, tween } from "./motion";
@@ -13,17 +14,24 @@ import {
   COLOR_PANEL_SHADOW,
 } from "../colors";
 import config from "../config";
+import type { AssetKey } from "../../assetpack/assets";
 
-export type TShopView = {
+export type TSettingsTab = "settings" | "skins" | "credits";
+
+export type TSettingsView = {
   leaves: number;
   ownedSkins: readonly string[];
   selectedSkin: string;
+  musicOn: boolean;
+  sfxOn: boolean;
 };
 
 export type TSettingsEvents = {
   "settings:buy": [string];
   "settings:select": [string];
   "settings:close": [];
+  "settings:musicToggled": [boolean];
+  "settings:sfxToggled": [boolean];
 };
 
 const PANEL_W = config.width * 0.88;
@@ -34,14 +42,45 @@ const PANEL_TOP = CY - PANEL_H * 0.5;
 const ROW_W = PANEL_W - 64;
 const ROW_H = 176;
 const ROWS_TOP = PANEL_TOP + 256;
+const TAB_Y = PANEL_TOP + 78;
+const TAB_W = 176;
+const TAB_H = 72;
+const TOGGLE_SIZE = 110;
+const INACTIVE_TAB_ALPHA = 0.6;
+
+const TABS: readonly { id: TSettingsTab; label: string }[] = [
+  { id: "settings", label: "Settings" },
+  { id: "skins", label: "Skins" },
+  { id: "credits", label: "Credits" },
+];
+
+const CREDITS = [
+  "Art — Kawaii Farm Match-3 Asset Pack",
+  "by monixxy (monixxy.itch.io)",
+  "",
+  "Sound effects — TT Soundeffects",
+  "by sablebloom (sablebloom.itch.io)",
+  "",
+  'Music — "Farm Music"',
+  "from OpenGameArt",
+  "(opengameart.org/content/farm-music)",
+  "",
+  "Sprout © 2026 Tayfun Turgut",
+].join("\n");
 
 export class CSettingsOverlay extends CContainer<TNone, TSettingsEvents> {
   private readonly animations = new CAnimations();
   private readonly panel = new Container();
   private readonly rowsLayer = new Container();
+  private readonly tabs = new Map<
+    TSettingsTab,
+    { button: FancyButton; content: Container }
+  >();
   private balance!: Text;
+  private musicToggle!: CheckBox;
+  private sfxToggle!: CheckBox;
 
-  constructor(view: TShopView) {
+  constructor(view: TSettingsView, initialTab: TSettingsTab = "settings") {
     super();
 
     const dim = new Graphics()
@@ -66,25 +105,6 @@ export class CSettingsOverlay extends CContainer<TNone, TSettingsEvents> {
         .stroke({ color: COLOR_PANEL_BORDER, width: 8 }),
     );
 
-    this.panel.addChild(
-      this.text("Skins", 56, COLOR_FONT_FILL_BROWN, CX, PANEL_TOP + 70),
-    );
-
-    const leaf = new Sprite(getAsset<Texture>("leaf-icon"));
-    leaf.anchor.set(0.5);
-    leaf.scale.set(40 / Math.max(leaf.width, leaf.height));
-    leaf.position.set(CX - 40, PANEL_TOP + 150);
-    this.panel.addChild(leaf);
-    this.balance = this.text(
-      String(view.leaves),
-      44,
-      COLOR_FONT_FILL_BROWN,
-      CX + 10,
-      PANEL_TOP + 150,
-    );
-    this.balance.anchor.set(0, 0.5);
-    this.panel.addChild(this.balance);
-
     const close = new Sprite(getAsset<Texture>("btn-close"));
     close.anchor.set(0.5);
     close.scale.set(64 / Math.max(close.width, close.height));
@@ -94,8 +114,7 @@ export class CSettingsOverlay extends CContainer<TNone, TSettingsEvents> {
     close.on("pointertap", () => this.emit("settings:close"));
     this.panel.addChild(close);
 
-    this.panel.addChild(this.rowsLayer);
-    this.buildRows(view);
+    this.buildTabs(view, initialTab);
 
     const controls = tween(0, 1, {
       duration: 0.3,
@@ -109,9 +128,11 @@ export class CSettingsOverlay extends CContainer<TNone, TSettingsEvents> {
     this.animations.track(controls);
   }
 
-  update(view: TShopView) {
+  update(view: TSettingsView) {
     this.balance.text = view.leaves;
     this.buildRows(view);
+    this.musicToggle.forceCheck(view.musicOn);
+    this.sfxToggle.forceCheck(view.sfxOn);
   }
 
   destroy() {
@@ -119,7 +140,139 @@ export class CSettingsOverlay extends CContainer<TNone, TSettingsEvents> {
     this.container.destroy({ children: true });
   }
 
-  private buildRows(view: TShopView) {
+  private buildTabs(view: TSettingsView, initialTab: TSettingsTab) {
+    TABS.forEach(({ id, label }, index) => {
+      const defaultView = new Sprite(getAsset<Texture>("btn-wide"));
+      defaultView.setSize(TAB_W, TAB_H);
+      const pressedView = new Sprite(getAsset<Texture>("btn-wide-pressed"));
+      pressedView.setSize(TAB_W, TAB_H);
+      const button = new FancyButton({
+        defaultView,
+        pressedView,
+        text: this.text(label, 32, "#ffffff", 0, 0),
+        anchor: 0.5,
+      });
+      button.position.set(CX + (index - 1) * (TAB_W + 24), TAB_Y);
+      button.onPress.connect(() => this.showTab(id));
+      this.panel.addChild(button);
+
+      const content = new Container();
+      content.visible = false;
+      this.panel.addChild(content);
+      this.tabs.set(id, { button, content });
+    });
+
+    this.buildSettingsTab(view);
+    this.buildSkinsTab(view);
+    this.buildCreditsTab();
+    this.showTab(initialTab);
+  }
+
+  private showTab(active: TSettingsTab) {
+    for (const [id, tab] of this.tabs) {
+      tab.content.visible = id === active;
+      tab.button.alpha = id === active ? 1 : INACTIVE_TAB_ALPHA;
+    }
+  }
+
+  private content(id: TSettingsTab): Container {
+    const tab = this.tabs.get(id);
+    if (!tab) throw new Error(`unknown settings tab: ${id}`);
+    return tab.content;
+  }
+
+  private buildSettingsTab(view: TSettingsView) {
+    const content = this.content("settings");
+    this.musicToggle = this.toggleRow(
+      content,
+      "Music",
+      PANEL_TOP + 300,
+      view.musicOn,
+      ["btn-music-on", "btn-music-off"],
+      (on) => this.emit("settings:musicToggled", on),
+    );
+    this.sfxToggle = this.toggleRow(
+      content,
+      "Sound",
+      PANEL_TOP + 460,
+      view.sfxOn,
+      ["btn-sound-on", "btn-sound-off"],
+      (on) => this.emit("settings:sfxToggled", on),
+    );
+  }
+
+  private toggleRow(
+    content: Container,
+    label: string,
+    y: number,
+    checked: boolean,
+    textures: [AssetKey, AssetKey],
+    onCheck: (on: boolean) => void,
+  ): CheckBox {
+    const name = this.text(label, 44, COLOR_FONT_FILL_BROWN, 0, y);
+    name.anchor.set(0, 0.5);
+    name.position.x = CX - PANEL_W * 0.5 + 64;
+    content.addChild(name);
+
+    const checkedView = new Sprite(getAsset<Texture>(textures[0]));
+    checkedView.setSize(TOGGLE_SIZE, TOGGLE_SIZE);
+    const uncheckedView = new Sprite(getAsset<Texture>(textures[1]));
+    uncheckedView.setSize(TOGGLE_SIZE, TOGGLE_SIZE);
+    const toggle = new CheckBox({
+      checked,
+      style: { checked: checkedView, unchecked: uncheckedView },
+    });
+    toggle.position.set(
+      CX + PANEL_W * 0.5 - 64 - TOGGLE_SIZE,
+      y - TOGGLE_SIZE * 0.5,
+    );
+    toggle.onCheck.connect(onCheck);
+    content.addChild(toggle);
+    return toggle;
+  }
+
+  private buildSkinsTab(view: TSettingsView) {
+    const content = this.content("skins");
+
+    const leaf = new Sprite(getAsset<Texture>("leaf-icon"));
+    leaf.anchor.set(0.5);
+    leaf.scale.set(40 / Math.max(leaf.width, leaf.height));
+    leaf.position.set(CX - 40, PANEL_TOP + 170);
+    content.addChild(leaf);
+    this.balance = this.text(
+      String(view.leaves),
+      44,
+      COLOR_FONT_FILL_BROWN,
+      CX + 10,
+      PANEL_TOP + 170,
+    );
+    this.balance.anchor.set(0, 0.5);
+    content.addChild(this.balance);
+
+    content.addChild(this.rowsLayer);
+    this.buildRows(view);
+  }
+
+  private buildCreditsTab() {
+    const content = this.content("credits");
+    const credits = new Text({
+      text: CREDITS,
+      style: {
+        fontFamily: getAsset<FontFace>("Baloo2-Regular").family,
+        fontSize: 30,
+        lineHeight: 44,
+        fill: COLOR_FONT_FILL_BROWN,
+        align: "center",
+        wordWrap: true,
+        wordWrapWidth: PANEL_W - 100,
+      },
+    });
+    credits.anchor.set(0.5);
+    credits.position.set(CX, PANEL_TOP + 140 + (PANEL_H - 170) * 0.5);
+    content.addChild(credits);
+  }
+
+  private buildRows(view: TSettingsView) {
     for (const child of this.rowsLayer.removeChildren()) child.destroy();
 
     SKINS.forEach((skin, index) => {

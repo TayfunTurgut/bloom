@@ -110,6 +110,10 @@ export class CTray extends CContainer<TNone, TTrayEvents> {
     return total;
   }
 
+  swapButtonPosition(): { x: number; y: number } {
+    return { x: SWAP_BUTTON_X, y: 0 };
+  }
+
   playSwap(aId: number, bId: number) {
     const a = this.pieces.get(aId);
     const b = this.pieces.get(bId);

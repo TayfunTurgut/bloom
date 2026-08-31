@@ -26,6 +26,15 @@ const v2Profile = (tutorialsSeen: number[]) => ({
   endless: null,
 });
 
+const v3Profile = (tutorialsSeen: string[]) => ({
+  version: 3,
+  leaves: 7,
+  ownedSkins: ["garden", "orchard"],
+  selectedSkin: "orchard",
+  tutorialsSeen,
+  endless: { order: [12, 10, 11], pos: 1 },
+});
+
 afterEach(() => {
   vi.unstubAllGlobals();
 });
@@ -34,6 +43,13 @@ describe("loadProfile", () => {
   it("returns an empty profile when nothing is stored", () => {
     stubStorage();
     expect(loadProfile()).toEqual(emptyProfile());
+  });
+
+  it("starts new players with sound on and the tutorial pending", () => {
+    const profile = emptyProfile();
+    expect(profile.musicOn).toBe(true);
+    expect(profile.sfxOn).toBe(true);
+    expect(profile.tutorialDone).toBe(false);
   });
 
   it("returns an empty profile for garbage", () => {
@@ -46,28 +62,44 @@ describe("loadProfile", () => {
     const profile = {
       ...emptyProfile(),
       leaves: 3,
-      tutorialsSeen: ["welcome", "swap"],
+      tutorialDone: true,
+      musicOn: false,
+      sfxOn: false,
     };
     saveProfile(profile);
     expect(loadProfile()).toEqual(profile);
   });
 
-  it("migrates v2 tutorial indices to lesson ids", () => {
-    stubStorage().set(KEY, JSON.stringify(v2Profile([0, 1, 2])));
+  it("treats a v3 player who saw any lesson as past the tutorial", () => {
+    stubStorage().set(KEY, JSON.stringify(v3Profile(["welcome"])));
     const profile = loadProfile();
     expect(profile.version).toBe(PROFILE_VERSION);
-    expect(profile.tutorialsSeen).toEqual(["welcome", "feed", "goals"]);
+    expect(profile.tutorialDone).toBe(true);
+    expect(profile.musicOn).toBe(true);
+    expect(profile.sfxOn).toBe(true);
+    expect(profile.leaves).toBe(7);
+    expect(profile.ownedSkins).toEqual(["garden", "orchard"]);
+    expect(profile.selectedSkin).toBe("orchard");
+    expect(profile.endless).toEqual({ order: [12, 10, 11], pos: 1 });
+  });
+
+  it("sends a fresh v3 player through the new tutorial", () => {
+    stubStorage().set(KEY, JSON.stringify(v3Profile([])));
+    expect(loadProfile().tutorialDone).toBe(false);
+  });
+
+  it("migrates a v2 profile the same way", () => {
+    stubStorage().set(KEY, JSON.stringify(v2Profile([0, 1])));
+    const profile = loadProfile();
+    expect(profile.version).toBe(PROFILE_VERSION);
+    expect(profile.tutorialDone).toBe(true);
     expect(profile.leaves).toBe(5);
+    expect(profile.musicOn).toBe(true);
   });
 
-  it("migrates a partial v2 tutorial list", () => {
-    stubStorage().set(KEY, JSON.stringify(v2Profile([0])));
-    expect(loadProfile().tutorialsSeen).toEqual(["welcome"]);
-  });
-
-  it("drops out-of-range v2 tutorial indices", () => {
-    stubStorage().set(KEY, JSON.stringify(v2Profile([1, 7])));
-    expect(loadProfile().tutorialsSeen).toEqual(["feed"]);
+  it("sends a fresh v2 player through the new tutorial", () => {
+    stubStorage().set(KEY, JSON.stringify(v2Profile([])));
+    expect(loadProfile().tutorialDone).toBe(false);
   });
 
   it("keeps only leaves from a v1 profile", () => {

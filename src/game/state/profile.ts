@@ -2,7 +2,7 @@ import { z } from "zod";
 import { setStorage } from "../../engine/storage";
 import { DEFAULT_SKIN_ID } from "../config/skins";
 
-export const PROFILE_VERSION = 3;
+export const PROFILE_VERSION = 4;
 
 const endlessSchema = z.object({
   order: z.array(z.number().int().min(0)),
@@ -14,7 +14,9 @@ export const profileSchema = z.object({
   leaves: z.number().int().min(0),
   ownedSkins: z.array(z.string()),
   selectedSkin: z.string(),
-  tutorialsSeen: z.array(z.string()),
+  tutorialDone: z.boolean(),
+  musicOn: z.boolean(),
+  sfxOn: z.boolean(),
   endless: endlessSchema.nullable(),
 });
 
@@ -34,8 +36,14 @@ const legacyV2Schema = z.object({
   endless: endlessSchema.nullable(),
 });
 
-// v2 stored tutorialsSeen as indices into the then three-lesson sequence.
-const LEGACY_LESSON_IDS = ["welcome", "feed", "goals"];
+const legacyV3Schema = z.object({
+  version: z.literal(3),
+  leaves: z.number().int().min(0),
+  ownedSkins: z.array(z.string()),
+  selectedSkin: z.string(),
+  tutorialsSeen: z.array(z.string()),
+  endless: endlessSchema.nullable(),
+});
 
 const STORAGE_KEY = "sprout:profile";
 
@@ -44,8 +52,25 @@ export const emptyProfile = (): TProfile => ({
   leaves: 0,
   ownedSkins: [DEFAULT_SKIN_ID],
   selectedSkin: DEFAULT_SKIN_ID,
-  tutorialsSeen: [],
+  tutorialDone: false,
+  musicOn: true,
+  sfxOn: true,
   endless: null,
+});
+
+// Anyone who saw a popup lesson in v2/v3 is past what the guided tutorial
+// teaches, so any non-empty tutorialsSeen maps to tutorialDone.
+const fromLegacy = (
+  legacy: z.infer<typeof legacyV2Schema> | z.infer<typeof legacyV3Schema>,
+): TProfile => ({
+  version: PROFILE_VERSION,
+  leaves: legacy.leaves,
+  ownedSkins: legacy.ownedSkins,
+  selectedSkin: legacy.selectedSkin,
+  tutorialDone: legacy.tutorialsSeen.length > 0,
+  musicOn: true,
+  sfxOn: true,
+  endless: legacy.endless,
 });
 
 export const loadProfile = (): TProfile => {
@@ -55,15 +80,10 @@ export const loadProfile = (): TProfile => {
       const parsed = JSON.parse(raw) as unknown;
       const current = profileSchema.safeParse(parsed);
       if (current.success) return current.data;
+      const v3 = legacyV3Schema.safeParse(parsed);
+      if (v3.success) return fromLegacy(v3.data);
       const v2 = legacyV2Schema.safeParse(parsed);
-      if (v2.success)
-        return {
-          ...v2.data,
-          version: PROFILE_VERSION,
-          tutorialsSeen: v2.data.tutorialsSeen
-            .filter((index) => index < LEGACY_LESSON_IDS.length)
-            .map((index) => LEGACY_LESSON_IDS[index]),
-        };
+      if (v2.success) return fromLegacy(v2.data);
       const v1 = legacyV1Schema.safeParse(parsed);
       if (v1.success) return { ...emptyProfile(), leaves: v1.data.leaves };
     } catch {}

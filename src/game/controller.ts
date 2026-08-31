@@ -27,12 +27,18 @@ import {
   isLevelWon,
   milestonesReached,
 } from "./model/rules";
-import { generateLevel } from "./config/generate";
+import { levelFor } from "./config/generate";
 import { advanceProgress, WRAP_BONUS_LEAVES } from "./config/progression";
 import { skinById } from "./config/skins";
-import { CSettingsOverlay, type TShopView } from "./components/settings";
-import { CTutorialOverlay } from "./components/tutorial";
-import { nextLesson, type TLessonMoment } from "./components/lessons";
+import { CSettingsOverlay, type TSettingsView } from "./components/settings";
+import { CTutorialCoach } from "./components/coach";
+import {
+  actionAllowed,
+  isTutorialComplete,
+  tutorialView,
+  type TTutorialAction,
+} from "./model/tutorial";
+import { cellIdFromXY } from "./id";
 import { buildGallery } from "./dev/gallery";
 import type { TGameState, TMoveReport } from "./model/types";
 import { saveSaveState, loadSaveState } from "./state";
@@ -63,7 +69,7 @@ export class CGameController extends CContainer {
   private levelContainer!: Container;
   private overlay: CLevelEndOverlay | null = null;
   private settingsOverlay: CSettingsOverlay | null = null;
-  private tutorialOverlay: CTutorialOverlay | null = null;
+  private coach: CTutorialCoach | null = null;
   private unsubscribe: (() => void) | null = null;
   private profile = loadProfile();
   private currentSkinId!: string;
@@ -108,7 +114,10 @@ export class CGameController extends CContainer {
     );
     progressBar.destroy();
 
-    initSound(() => ({ musicOn: true, sfxOn: true }));
+    initSound(() => ({
+      musicOn: this.profile.musicOn,
+      sfxOn: this.profile.sfxOn,
+    }));
     music.start();
 
     app.stage.addChild(createBackground(app));
@@ -133,12 +142,12 @@ export class CGameController extends CContainer {
 
     const forced = devLevel();
     if (forced !== undefined) {
-      const level = generateLevel(forced, skin);
+      const level = levelFor(forced, skin);
       this.startLevel(createInitialState(forced, level, devSeed()));
       return;
     }
 
-    const level = generateLevel(save.level, skin);
+    const level = levelFor(save.level, skin);
     const restored = fromSnapshot(save, save.level, level);
     this.startLevel(
       restored ?? createInitialState(save.level, level, devSeed()),
@@ -156,11 +165,18 @@ export class CGameController extends CContainer {
     this.levelContainer.addChild(this.panel.container);
 
     this.board = new CBoard(state);
-    this.board.on("board:cellClicked", ({ x, y }) => this.store.place(x, y));
+    this.board.on("board:cellClicked", ({ x, y }) => {
+      if (!this.tutorialAllows({ kind: "place", cell: cellIdFromXY(x, y) }))
+        return;
+      this.store.place(x, y);
+    });
     this.levelContainer.addChild(this.board.container);
 
     this.tray = new CTray();
-    this.tray.on("tray:swapClicked", () => this.store.swapTray());
+    this.tray.on("tray:swapClicked", () => {
+      if (!this.tutorialAllows({ kind: "swap" })) return;
+      this.store.swapTray();
+    });
     this.tray.on("tray:settingsClicked", () => this.openSettings());
     this.levelContainer.addChild(this.tray.container);
 
@@ -177,6 +193,7 @@ export class CGameController extends CContainer {
       this.lastReport = report;
       if (report.effects.some((effect) => effect.type === "PIECE_PLACED")) {
         this.presentMove(next, report);
+        this.updateCoach(next);
         return;
       }
       this.render(next);
@@ -186,6 +203,7 @@ export class CGameController extends CContainer {
           this.tray.playSwap(effect.a, effect.b);
         }
       }
+      this.updateCoach(next);
     });
     this.render(state);
     saveSaveState(toSnapshot(state, this.currentSkinId));
@@ -196,8 +214,10 @@ export class CGameController extends CContainer {
       this.showLevelEnd(true, milestonesReached(state), { silent: true });
     } else if (isLevelFailed(state)) {
       this.showLevelEnd(false, milestonesReached(state), { silent: true });
-    } else {
-      this.maybeShowLesson({ kind: "level-start", level: state.level });
+    } else if (!this.profile.tutorialDone && tutorialView(state)) {
+      this.coach = new CTutorialCoach(this.tray.container.y - 160);
+      this.levelContainer.addChild(this.coach.container);
+      this.updateCoach(state);
     }
 
     this.levelContainer.alpha = 0;
@@ -224,12 +244,7 @@ export class CGameController extends CContainer {
           goToLevel: (index: number) => this.goToLevel(index),
           setSkin: (id: string) => this.setSkin(id),
           idle: () => this.idle(),
-          dismissTutorial: () => {
-            const overlay = this.tutorialOverlay;
-            if (!overlay) return false;
-            overlay.emit("tutorial:dismiss");
-            return true;
-          },
+          tutorialStep: () => tutorialView(this.store.state),
         },
       });
     }
@@ -244,8 +259,8 @@ export class CGameController extends CContainer {
     this.overlay = null;
     this.settingsOverlay?.destroy();
     this.settingsOverlay = null;
-    this.tutorialOverlay?.destroy();
-    this.tutorialOverlay = null;
+    this.coach?.destroy();
+    this.coach = null;
     this.effects.destroy();
     this.tray.destroy();
     this.board.destroy();
@@ -380,12 +395,7 @@ export class CGameController extends CContainer {
       (effect) => effect.type === "LEVEL_FAILED",
     );
     if (!won && !failed) {
-      const moment: TLessonMoment = {
-        kind: "move-end",
-        level: state.level,
-        report,
-      };
-      if (!this.maybeShowLesson(moment)) this.unlockInput();
+      this.unlockInput();
       return;
     }
     await this.animations.delay(LEVEL_END_BEAT);
@@ -410,44 +420,74 @@ export class CGameController extends CContainer {
     this.tray.container.interactiveChildren = true;
   }
 
-  private maybeShowLesson(moment: TLessonMoment): boolean {
-    if (this.tutorialOverlay || this.settingsOverlay || this.overlay)
-      return false;
-    const lesson = nextLesson(moment, this.profile.tutorialsSeen);
-    if (!lesson) return false;
-    this.lockInput();
-    const overlay = new CTutorialOverlay(lesson);
-    this.tutorialOverlay = overlay;
-    this.levelContainer.addChild(overlay.container);
-    overlay.once("tutorial:dismiss", () => {
-      this.profile = {
-        ...this.profile,
-        tutorialsSeen: [...this.profile.tutorialsSeen, lesson.id],
-      };
-      saveProfile(this.profile);
-      overlay.destroy();
-      this.tutorialOverlay = null;
-      this.unlockInput();
-    });
-    return true;
+  // The director says which single action the tutorial allows; everything
+  // else is ignored at the event edge so the model stays pure.
+  private tutorialAllows(action: TTutorialAction): boolean {
+    if (!this.coach) return true;
+    return actionAllowed(tutorialView(this.store.state), action);
+  }
+
+  private updateCoach(state: TGameState) {
+    if (!this.coach) return;
+    const step = tutorialView(state);
+    if (!step) {
+      this.coach.destroy();
+      this.coach = null;
+      if (isTutorialComplete(state) && !this.profile.tutorialDone) {
+        this.profile = { ...this.profile, tutorialDone: true };
+        saveProfile(this.profile);
+      }
+      return;
+    }
+    if (step.action.kind === "place") {
+      const at = this.board.positionOfCell(step.action.cell);
+      if (at) {
+        const scale = this.board.container.scale.x;
+        this.coach.setTarget(
+          {
+            x: this.board.container.x + at.x * scale,
+            y: this.board.container.y + at.y * scale,
+          },
+          CCELL_WIDTH * 0.62 * scale,
+        );
+      }
+    } else {
+      const at = this.tray.swapButtonPosition();
+      this.coach.setTarget(
+        { x: this.tray.container.x + at.x, y: this.tray.container.y + at.y },
+        60,
+      );
+    }
+    this.coach.setHint(step.hint);
   }
 
   private openSettings() {
-    if (this.settingsOverlay || this.overlay || this.tutorialOverlay) return;
+    if (this.settingsOverlay || this.overlay) return;
     this.lockInput();
-    const overlay = new CSettingsOverlay(this.shopView());
+    const overlay = new CSettingsOverlay(this.settingsView());
     this.settingsOverlay = overlay;
     this.levelContainer.addChild(overlay.container);
     overlay.on("settings:buy", (id) => this.buySkin(id));
     overlay.on("settings:select", (id) => this.selectSkin(id));
     overlay.on("settings:close", () => this.closeSettings());
+    overlay.on("settings:musicToggled", (on) => {
+      this.profile = { ...this.profile, musicOn: on };
+      saveProfile(this.profile);
+      music.setEnabled(on);
+    });
+    overlay.on("settings:sfxToggled", (on) => {
+      this.profile = { ...this.profile, sfxOn: on };
+      saveProfile(this.profile);
+    });
   }
 
-  private shopView(): TShopView {
+  private settingsView(): TSettingsView {
     return {
       leaves: this.profile.leaves,
       ownedSkins: this.profile.ownedSkins,
       selectedSkin: this.profile.selectedSkin,
+      musicOn: this.profile.musicOn,
+      sfxOn: this.profile.sfxOn,
     };
   }
 
@@ -463,14 +503,14 @@ export class CGameController extends CContainer {
     };
     saveProfile(this.profile);
     this.leafCounter.setCount(this.profile.leaves);
-    this.settingsOverlay?.update(this.shopView());
+    this.settingsOverlay?.update(this.settingsView());
   }
 
   private selectSkin(id: string) {
     if (!this.profile.ownedSkins.includes(id)) return;
     this.profile = { ...this.profile, selectedSkin: id };
     saveProfile(this.profile);
-    this.settingsOverlay?.update(this.shopView());
+    this.settingsOverlay?.update(this.settingsView());
   }
 
   private closeSettings() {
@@ -483,7 +523,7 @@ export class CGameController extends CContainer {
     this.endLevel();
     const skin = skinById(this.profile.selectedSkin);
     this.currentSkinId = skin.id;
-    const level = generateLevel(index, skin);
+    const level = levelFor(index, skin);
     this.startLevel(createInitialState(index, level, devSeed()));
   }
 
@@ -556,7 +596,7 @@ export class CGameController extends CContainer {
     this.endLevel();
     const skin = skinById(this.profile.selectedSkin);
     this.currentSkinId = skin.id;
-    const level = generateLevel(result.index, skin);
+    const level = levelFor(result.index, skin);
     const state = createInitialState(result.index, level, devSeed());
     this.startLevel(state);
   }
