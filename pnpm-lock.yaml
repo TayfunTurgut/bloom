@@ -20,9 +20,15 @@ importers:
       '@capacitor/status-bar':
         specifier: ^8.0.3
         version: 8.0.3(@capacitor/core@8.5.0)
+      '@pixi/sound':
+        specifier: ^6.0.1
+        version: 6.0.1(pixi.js@8.19.0)
       '@pixi/ui':
         specifier: ^2.3.2
         version: 2.3.2(pixi.js@8.19.0)
+      capacitor-plugin-safe-area:
+        specifier: ^5.0.1
+        version: 5.0.1(@capacitor/core@8.5.0)
       motion:
         specifier: ^13.1.0
         version: 13.1.0
@@ -907,6 +913,11 @@ packages:
     resolution: {integrity: sha512-h/FDfBnWiv4+5JNNsfYs3wpDYYOJCCd14PMbFpt1sHDfutJGZ6MvDvq5JI7pL6toX25uyGPV9ADMCdV1KCVulg==}
     hasBin: true
 
+  '@pixi/sound@6.0.1':
+    resolution: {integrity: sha512-hpFlQSScAR2L/CsEoIvDi7s1oGsu8y9Zd742Vd3982N+q3IF2vFuIfV9HN4ryjlGnhCT8yBlEgs1gp4G9Rt9TA==}
+    peerDependencies:
+      pixi.js: ^8.0.0
+
   '@pixi/svg2ttf@6.1.0':
     resolution: {integrity: sha512-qT7P6F48lyWVWn6w0qxWtxLVVPEcXzAlo9/nimh4cflfKQWdApqfCZVOCgaaO0xHVpClbhCzApQXlJnLEs1oaw==}
     hasBin: true
@@ -1411,6 +1422,11 @@ packages:
   camelcase@5.3.1:
     resolution: {integrity: sha512-L28STB170nwWS63UjtlEOE3dldQApaJXZkOI1uMFfzf3rRuPegHaHesyee+YxQ+W6SvRDQV6UrdOdRiR153wJg==}
     engines: {node: '>=6'}
+
+  capacitor-plugin-safe-area@5.0.1:
+    resolution: {integrity: sha512-DLSCFpvSkYJk4FaVHD0/xbRjdVN7GsBbdoYWmHr7h/LvuO4Q8VW+1ftzMzH3ScIMIydy2DuRYrn+GORnlESBxw==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.0'
 
   chai@6.2.2:
     resolution: {integrity: sha512-NUPRluOfOiTKBKvWPtSD4PhFvWCqOi0BGStNWs57X9js7XGTprSmFoz5F0tWhR4WPjNeR9jXqdC7/UpSJTnlRg==}
@@ -4565,6 +4581,10 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  '@pixi/sound@6.0.1(pixi.js@8.19.0)':
+    dependencies:
+      pixi.js: 8.19.0
+
   '@pixi/svg2ttf@6.1.0':
     dependencies:
       '@xmldom/xmldom': 0.9.10
@@ -5062,6 +5082,10 @@ snapshots:
       quick-lru: 4.0.1
 
   camelcase@5.3.1: {}
+
+  capacitor-plugin-safe-area@5.0.1(@capacitor/core@8.5.0):
+    dependencies:
+      '@capacitor/core': 8.5.0
 
   chai@6.2.2: {}
 

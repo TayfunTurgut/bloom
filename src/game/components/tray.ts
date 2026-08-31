@@ -3,7 +3,7 @@ import { CContainer, type TNone } from "../../engine/container";
 import { getAsset } from "../assets";
 import { CPiece, CPIECE_WIDTH } from "./piece";
 import { syncPieceViews, type TPiecePlacement } from "./pieces";
-import { CAnimations, tween } from "./motion";
+import { CAnimations, tween, type TAnimation } from "./motion";
 import { COLOR_TRAY_ARROW } from "../colors";
 import config from "../config";
 import { TRAY_SIZE } from "../model/rules";
@@ -22,9 +22,9 @@ const BUTTON_DIVIDER_HEIGHT = 84;
 const SETTINGS_BUTTON_X = 308;
 const SETTINGS_BUTTON_SIZE = 72;
 const SWAP_ARC = 42;
-const SWAP_DURATION = 0.35;
+const SWAP_DURATION = 0.25;
 const SLIDE_DROP = 84;
-const SLIDE_DURATION = 0.3;
+const SLIDE_DURATION = 0.15;
 
 export type TTrayEvents = {
   "tray:swapClicked": [];
@@ -34,6 +34,7 @@ export type TTrayEvents = {
 export class CTray extends CContainer<TNone, TTrayEvents> {
   private readonly pieces = new Map<number, CPiece>();
   private readonly animations = new CAnimations();
+  private readonly pieceAnims = new Map<number, TAnimation>();
 
   constructor() {
     super();
@@ -47,6 +48,9 @@ export class CTray extends CContainer<TNone, TTrayEvents> {
   }
 
   render(state: TGameState) {
+    // Any running slide or arc aims at a slot that may just have shifted, so
+    // cancel them all and let syncPieceViews snap to the authoritative slots.
+    for (const id of [...this.pieceAnims.keys()]) this.cancelPieceAnim(id);
     const placements: TPiecePlacement[] = state.tray.map((piece, index) => ({
       piece,
       x: slotX(index),
@@ -54,10 +58,11 @@ export class CTray extends CContainer<TNone, TTrayEvents> {
     }));
     const created: CPiece[] = [];
     syncPieceViews(this.pieces, this.container, placements, (view) => {
-      view.container.alpha = TRAY_PIECE_ALPHA;
       view.container.scale.set(TRAY_PIECE_SCALE);
       created.push(view);
     });
+    for (const view of this.pieces.values())
+      view.container.alpha = TRAY_PIECE_ALPHA;
     for (const view of created) this.slideIn(view);
   }
 
@@ -74,7 +79,22 @@ export class CTray extends CContainer<TNone, TTrayEvents> {
         view.container.alpha = TRAY_PIECE_ALPHA * t;
       },
     });
-    this.animations.track(controls);
+    this.trackPieceAnim(view.id, controls);
+  }
+
+  private trackPieceAnim(id: number, controls: TAnimation) {
+    this.cancelPieceAnim(id);
+    this.pieceAnims.set(id, controls);
+    this.animations.track(controls, () => {
+      if (this.pieceAnims.get(id) === controls) this.pieceAnims.delete(id);
+    });
+  }
+
+  private cancelPieceAnim(id: number) {
+    const controls = this.pieceAnims.get(id);
+    if (!controls) return;
+    this.pieceAnims.delete(id);
+    this.animations.stop(controls);
   }
 
   activeCount(): number {
@@ -93,6 +113,7 @@ export class CTray extends CContainer<TNone, TTrayEvents> {
 
   destroy() {
     this.animations.stopAll();
+    this.pieceAnims.clear();
     for (const view of this.pieces.values()) view.destroy();
     this.pieces.clear();
     this.container.destroy({ children: true });
@@ -110,7 +131,7 @@ export class CTray extends CContainer<TNone, TTrayEvents> {
         );
       },
     });
-    this.animations.track(controls);
+    this.trackPieceAnim(view.id, controls);
   }
 
   private createBackground() {

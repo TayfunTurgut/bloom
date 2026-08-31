@@ -12,9 +12,9 @@ import { CAnimations, tween } from "./motion";
 import config from "../config";
 import type { AssetKey } from "../../assetpack/assets";
 
-export const EFFECT_STAGGER = 0.08;
-const DRAIN_STAGGER = 0.05;
-const DRAIN_DURATION = 0.45;
+export const EFFECT_STAGGER = 0.06;
+const DRAIN_STAGGER = 0.03;
+const DRAIN_DURATION = 0.3;
 const DRAIN_SIZE = CCELL_WIDTH * 0.34;
 const DRAIN_ARC = CCELL_WIDTH * 0.35;
 const VANISH_DURATION = 0.45;

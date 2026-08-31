@@ -161,7 +161,7 @@ export class CGameController extends CContainer {
       }
       this.lastReport = report;
       if (report.effects.some((effect) => effect.type === "PIECE_PLACED")) {
-        void this.presentMove(next, report);
+        this.presentMove(next, report);
         return;
       }
       this.render(next);
@@ -241,16 +241,55 @@ export class CGameController extends CContainer {
     this.tray.render(state);
   }
 
-  private async presentMove(state: TGameState, report: TMoveReport) {
-    this.presenting = true;
-    try {
-      await this.runMove(state, report);
-    } finally {
-      this.presenting = false;
+  // A move only blocks input while its reward beat plays out: harvests and
+  // level ends. Plain placements and feeds render synchronously so the player
+  // can keep placing pieces back to back.
+  private presentMove(state: TGameState, report: TMoveReport) {
+    const blocking = report.effects.some(
+      (effect) =>
+        effect.type === "HARVESTED" ||
+        effect.type === "LEVEL_WON" ||
+        effect.type === "LEVEL_FAILED",
+    );
+    if (!blocking) {
+      this.runQuickMove(state, report);
+      return;
     }
+    this.presenting = true;
+    void this.runBlockingMove(state, report).finally(() => {
+      this.presenting = false;
+    });
   }
 
-  private async runMove(state: TGameState, report: TMoveReport) {
+  private runQuickMove(state: TGameState, report: TMoveReport) {
+    this.tray.render(state);
+    for (const effect of report.effects) {
+      if (effect.type !== "PIECE_PLACED") continue;
+      this.board.applyPlacement(state, effect.cell);
+    }
+    this.panel.render(state);
+
+    const fed = report.effects.find((effect) => effect.type === "FED");
+    if (!fed) {
+      this.board.render(state);
+      return;
+    }
+    // No full board render here: a fed supply survives the move, and a late
+    // async render could clobber a later blocking move's harvest in flight.
+    const from = this.board.positionOfCell(fed.from);
+    const to = this.board.positionOfCell(fed.to);
+    if (!from || !to) {
+      this.board.showFedValue(fed.targetId, fed.remaining);
+      return;
+    }
+    const generation = this.generation;
+    void this.effects.feed(fed.assetKey, fed.amount, from, to).then(() => {
+      if (generation !== this.generation) return;
+      this.board.showFedValue(fed.targetId, fed.remaining);
+    });
+  }
+
+  private async runBlockingMove(state: TGameState, report: TMoveReport) {
     const generation = this.generation;
     this.lockInput();
     this.tray.render(state);

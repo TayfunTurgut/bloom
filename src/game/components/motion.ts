@@ -74,6 +74,12 @@ export class CAnimations {
     return this.wait(tween(0, 1, { duration }));
   }
 
+  /** Stops a tracked animation early; safe if it already finished. */
+  stop(controls: TAnimation) {
+    if (!this.running.delete(controls)) return;
+    controls.stop();
+  }
+
   stopAll() {
     for (const controls of this.running) controls.stop();
     this.running.clear();
