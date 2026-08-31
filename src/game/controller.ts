@@ -410,11 +410,12 @@ export class CGameController extends CContainer {
       if (generation !== this.generation) return;
     }
 
+    // A rock only ever breaks alongside the harvest that frees it, so the
+    // poof rides that harvest's sound rather than adding one of its own.
     for (const effect of report.effects) {
       if (effect.type !== "ROCK_BROKEN") continue;
       const at = this.board.positionOfCell(effect.cell);
       if (!at) continue;
-      sfx("pop");
       void this.effects.vanish(at, 0, () => {});
     }
 
