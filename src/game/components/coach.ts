@@ -31,6 +31,7 @@ export class CTutorialCoach extends CContainer {
     // the idle() check that waits for activeCount to reach zero.
     this.ring.visible = false;
     this.ring.onRender = () => {
+      if (!this.ring.visible) return;
       const t = (now() % PULSE_PERIOD_MS) / PULSE_PERIOD_MS;
       const wave = Math.sin(t * Math.PI * 2);
       this.ring.alpha = 0.75 + 0.25 * wave;

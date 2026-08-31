@@ -43,7 +43,13 @@ import { buildGallery } from "./dev/gallery";
 import type { TGameState, TMoveReport } from "./model/types";
 import { saveSaveState, loadSaveState } from "./state";
 import { loadProfile, saveProfile } from "./state/profile";
-import { AUDIO_ASSET_KEYS, initSound, music, sfx } from "./sound";
+import {
+  initSound,
+  music,
+  MUSIC_ASSET_KEY,
+  sfx,
+  SFX_ASSET_KEYS,
+} from "./sound";
 import type { AssetKey } from "../assetpack/assets";
 
 const STATIC_ASSET_KEYS: readonly AssetKey[] = [
@@ -106,8 +112,9 @@ export class CGameController extends CContainer {
       progressBar,
     );
 
+    const insetsPromise = getSafeAreaInsets();
     await assets.load(
-      ["hud", "pieces", "anim", ...STATIC_ASSET_KEYS, ...AUDIO_ASSET_KEYS],
+      ["hud", "pieces", "anim", ...STATIC_ASSET_KEYS, ...SFX_ASSET_KEYS],
       (progress) => {
         progressBar.progress = progress * 100;
       },
@@ -118,10 +125,10 @@ export class CGameController extends CContainer {
       musicOn: this.profile.musicOn,
       sfxOn: this.profile.sfxOn,
     }));
-    music.start();
+    void assets.load<unknown>([MUSIC_ASSET_KEY]).then(() => music.start());
 
     app.stage.addChild(createBackground(app));
-    this.insets = await getSafeAreaInsets();
+    this.insets = await insetsPromise;
     onSafeAreaChange((insets) => {
       this.insets = insets;
       this.onResize(app.screen.width, app.screen.height);

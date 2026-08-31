@@ -163,6 +163,7 @@ export class CTray extends CContainer<TNone, TTrayEvents> {
       .stroke({ width: 6, color: COLOR_GOAL_PROGRESS_FILL });
     ring.visible = false;
     ring.onRender = () => {
+      if (!ring.visible) return;
       const t = (now() % HIGHLIGHT_PULSE_PERIOD_MS) / HIGHLIGHT_PULSE_PERIOD_MS;
       const wave = Math.sin(t * Math.PI * 2);
       ring.alpha = 0.7 + 0.3 * wave;

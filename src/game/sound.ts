@@ -4,8 +4,9 @@ import { sound, type Sound } from "@pixi/sound";
 import type { AssetKey } from "../assetpack/assets";
 import { getAsset } from "./assets";
 
-export const AUDIO_ASSET_KEYS = [
-  "music",
+// The music track is much larger than the effects, so it loads in the
+// background after startup while the short effects gate the loading bar.
+export const SFX_ASSET_KEYS = [
   "pop",
   "match",
   "swap",
@@ -13,7 +14,9 @@ export const AUDIO_ASSET_KEYS = [
   "fail",
 ] as const satisfies readonly AssetKey[];
 
-export type TSfxName = Exclude<(typeof AUDIO_ASSET_KEYS)[number], "music">;
+export const MUSIC_ASSET_KEY = "music" satisfies AssetKey;
+
+export type TSfxName = (typeof SFX_ASSET_KEYS)[number];
 
 export type TSoundPrefs = { musicOn: boolean; sfxOn: boolean };
 
@@ -33,11 +36,12 @@ export const sfx = (name: TSfxName) => {
 export const music = {
   start() {
     if (!prefs().musicOn) return;
-    const track = getAsset<Sound>("music");
-    if (!track.isPlaying) void track.play({ loop: true, volume: MUSIC_VOLUME });
+    const track = getAsset<Sound | undefined>(MUSIC_ASSET_KEY);
+    if (track && !track.isPlaying)
+      void track.play({ loop: true, volume: MUSIC_VOLUME });
   },
   stop() {
-    getAsset<Sound>("music").stop();
+    getAsset<Sound | undefined>(MUSIC_ASSET_KEY)?.stop();
   },
   setEnabled(on: boolean) {
     if (on) music.start();
