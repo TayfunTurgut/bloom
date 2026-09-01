@@ -11,6 +11,7 @@ import { TRAY_SIZE } from "../model/rules";
 import type { TGameState } from "../model/types";
 
 const TRAY_PIECE_SCALE = 1.2;
+const NEXT_PIECE_SCALE = 1.35;
 const SLOT_SPACING = CPIECE_WIDTH * TRAY_PIECE_SCALE + 28;
 const SLOT0_X = -204;
 const DIVIDER_X = 130;
@@ -26,7 +27,7 @@ const SWAP_ARC = 42;
 const SWAP_DURATION = 0.25;
 const SLIDE_DROP = 84;
 const SLIDE_DURATION = 0.15;
-const HIGHLIGHT_RADIUS = (CPIECE_WIDTH * TRAY_PIECE_SCALE) / 2 + 8;
+const HIGHLIGHT_RADIUS = (CPIECE_WIDTH * NEXT_PIECE_SCALE) / 2 + 8;
 
 export type TTrayEvents = {
   "tray:swapClicked": [];
@@ -61,11 +62,19 @@ export class CTray extends CContainer<TNone, TTrayEvents> {
     }));
     const created: CPiece[] = [];
     syncPieceViews(this.pieces, this.container, placements, (view) => {
-      view.container.scale.set(TRAY_PIECE_SCALE);
       created.push(view);
     });
-    for (const view of this.pieces.values())
+    // The piece at the last index is placed next, so re-evaluate scale by index
+    // every render: a piece is created at index 0 and shifts to the end over time.
+    const nextIndex = state.tray.length - 1;
+    state.tray.forEach((piece, index) => {
+      const view = this.pieces.get(piece.id);
+      if (!view) return;
       view.container.alpha = TRAY_PIECE_ALPHA;
+      view.container.scale.set(
+        index === nextIndex ? NEXT_PIECE_SCALE : TRAY_PIECE_SCALE,
+      );
+    });
     for (const view of created) this.slideIn(view);
 
     this.nextHighlight.visible = state.tray.length > 0;

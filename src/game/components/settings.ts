@@ -43,7 +43,7 @@ const ROW_W = PANEL_W - 64;
 const ROW_H = 176;
 const ROWS_TOP = PANEL_TOP + 256;
 const TAB_Y = PANEL_TOP + 78;
-const TAB_W = 176;
+const TAB_W = 140;
 const TAB_H = 72;
 const TOGGLE_SIZE = 110;
 const INACTIVE_TAB_ALPHA = 0.6;
@@ -64,7 +64,7 @@ const CREDITS = [
   'Music — "Farm Music" by migfus20',
   "OpenGameArt, OGA-BY 4.0",
   "",
-  "Sprout © 2026 Tayfun Turgut",
+  "Sprout © 2026 Melisa Turgut",
 ].join("\n");
 
 export class CSettingsOverlay extends CContainer<TNone, TSettingsEvents> {
@@ -148,10 +148,10 @@ export class CSettingsOverlay extends CContainer<TNone, TSettingsEvents> {
       const button = new FancyButton({
         defaultView,
         pressedView,
-        text: this.text(label, 32, "#ffffff", 0, 0),
+        text: this.text(label, 28, "#ffffff", 0, 0),
         anchor: 0.5,
       });
-      button.position.set(CX + (index - 1) * (TAB_W + 24), TAB_Y);
+      button.position.set(CX + (index - 1) * (TAB_W + 12), TAB_Y);
       button.onPress.connect(() => this.showTab(id));
       this.panel.addChild(button);
 
