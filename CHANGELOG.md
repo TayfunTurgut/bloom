@@ -4,6 +4,30 @@ All notable changes to Sprout are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/), and the project uses
 [semantic versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- Play is tap-only: the tray's swap button is gone. The tray still shows the
+  next crop and the two after it. The guided first level now teaches planting,
+  feeding and harvesting in three taps.
+- The launch screen is the app icon on grass green, in place of the default
+  white Capacitor splash; the web view and canvas use the same green while the
+  game loads.
+- Crops grow out of the soil when placed, tiles dip under the finger, and a tap
+  on a taken tile makes its crop shake.
+- The tray queue slides along, goal counts and leaf pips pop, the score ring
+  fills smoothly, and harvests in a chain rise in pitch.
+- The result screen fades in, ignores taps for its first moment and shows "Tap
+  to continue".
+- Goals sit evenly around the score ring when a level has fewer than four.
+
+### Fixed
+
+- Bold text uses the bold Baloo face; the browser was faking it from the
+  regular one.
+- Piece values stay sharp on small boards.
+
 ## [1.1.0] — 2026-08-31
 
 ### Added

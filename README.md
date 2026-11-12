@@ -20,8 +20,8 @@ and iPad (iOS 15+).
 
 A crop is a `TPiece` with a state: `SEED` in the tray, `GROWING` on the board
 under foliage (the overlay art thins as its remaining value drops), or `SUPPLY`
-once spent. Tapping an empty cell plays the rightmost tray crop; the tray's
-circular-arrow button swaps its two rightmost crops for free. With no growing
+once spent. Tapping an empty cell plays the rightmost tray crop; the tray only
+shows what comes next and cannot be reordered. With no growing
 cardinal neighbour the played crop sprouts and starts growing at its value;
 otherwise it becomes supply and feeds its value into the strongest growing
 neighbour — ties go left, feeds clamp at zero. A crop fed to zero is harvested:
@@ -48,7 +48,7 @@ to be freed.
 
 The first level is authored rather than generated (`config/tutorial.ts`): a
 3x3 board dealt a fixed run of crops, which `model/tutorial.ts` reads to
-direct the player through planting, swapping, feeding and harvesting. The
+direct the player through planting, feeding and harvesting. The
 director is pure and derives its step from the move count and the tray, so a
 save restored mid-tutorial resumes on the right step. The controller draws its
 target as a pulsing ring (`components/coach.ts`) and ignores every input but
@@ -93,7 +93,7 @@ specific level, `?safearea=<top,right,bottom,left>` to stand in for a device's
 insets in the browser, and `?gallery` to render every active-skin crop on a
 shared baseline alongside the growth stages — a quick visual check for
 readability and alignment. They also expose `window.__sprout` for scripted testing: `state()`,
-`lastReport()`, `place(x, y)`, `swap()`, `goToLevel(n)`, `setSkin(id)`,
+`lastReport()`, `place(x, y)`, `goToLevel(n)`, `setSkin(id)`,
 `tutorialStep()` — the step the tutorial director is asking for, or `null` —
 and `idle()` — a promise that resolves once the board, tray and effect animations
 settle, so a script can drive a move and screenshot a deterministic frame. All
@@ -129,6 +129,11 @@ In Xcode: select your signing team; bundle id is `com.tayfunturgut.sprout`
 App icons/splash: put a 1024×1024 `assets/icon.png` (and optional 2732×2732
 `assets/splash.png` / `splash-dark.png`) at the repo root, then run
 `npx @capacitor/assets generate --ios`.
+
+The launch image in `Splash.imageset` is the app icon centred on the grass green
+`#d0eb9d`. `capacitor.config.ts`, `src/style.css` and `COLOR_BACKGROUND` use the
+same green, so the launch screen, the web view and the canvas match until the
+board appears; change them together.
 
 ## Versioning
 

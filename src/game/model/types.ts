@@ -61,7 +61,6 @@ export type TEffect =
   | { type: "ROCK_BROKEN"; cell: CellId; pieceId: number }
   | { type: "SCORED"; amount: number; total: number }
   | { type: "MILESTONE_REACHED"; index: number }
-  | { type: "TRAY_SWAPPED"; a: number; b: number }
   | { type: "LEVEL_WON"; milestones: number }
   | { type: "LEVEL_FAILED" };
 

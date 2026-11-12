@@ -13,6 +13,13 @@ const BANNERS: readonly AssetKey[] = [
   "win3leaves",
 ];
 
+const DIM_FADE = 0.2;
+const BANNER_POP = 0.4;
+const LABEL_DELAY = 0.25;
+const LABEL_FADE = 0.2;
+// Long enough that a tap aimed at the board cannot skip the result.
+const CONTINUE_GUARD = 0.6;
+
 export type TLevelEndEvents = {
   "levelEnd:continue": [];
 };
@@ -28,7 +35,10 @@ export class CLevelEndOverlay extends CContainer<TNone, TLevelEndEvents> {
       .fill({ color: 0x000000, alpha: won ? 0.5 : 0.65 });
     dim.eventMode = "static";
     dim.cursor = "pointer";
-    dim.on("pointertap", () => this.emit("levelEnd:continue"));
+    let ready = false;
+    dim.on("pointertap", () => {
+      if (ready) this.emit("levelEnd:continue");
+    });
     this.container.addChild(dim);
 
     const index = won
@@ -58,15 +68,53 @@ export class CLevelEndOverlay extends CContainer<TNone, TLevelEndEvents> {
     );
     this.container.addChild(label);
 
-    const controls = tween(0, 1, {
-      duration: 0.4,
-      ease: "backOut",
-      onUpdate: (t) => {
-        if (banner.destroyed) return;
-        banner.scale.set(((config.width * 0.88) / banner.texture.width) * t);
+    const prompt = new Text({
+      text: "Tap to continue",
+      style: {
+        fontFamily: getAsset<FontFace>("Baloo2-Regular").family,
+        fontSize: 32,
+        fill: COLOR_FONT_FILL_GREEN,
+        align: "center",
       },
     });
-    this.animations.track(controls);
+    prompt.anchor.set(0.5);
+    prompt.position.set(config.width * 0.5, label.y + 64);
+    this.container.addChild(prompt);
+
+    const fadeIn = (
+      target: Graphics | Text,
+      delay: number,
+      duration: number,
+    ) => {
+      target.alpha = 0;
+      this.animations.track(
+        tween(0, 1, {
+          duration,
+          delay,
+          ease: "easeOut",
+          onUpdate: (t) => {
+            if (!target.destroyed) target.alpha = t;
+          },
+        }),
+      );
+    };
+    fadeIn(dim, 0, DIM_FADE);
+    fadeIn(label, LABEL_DELAY, LABEL_FADE);
+    fadeIn(prompt, CONTINUE_GUARD, LABEL_FADE);
+
+    this.animations.track(
+      tween(0, 1, {
+        duration: BANNER_POP,
+        ease: "backOut",
+        onUpdate: (t) => {
+          if (banner.destroyed) return;
+          banner.scale.set(((config.width * 0.88) / banner.texture.width) * t);
+        },
+      }),
+    );
+    this.animations.track(tween(0, 1, { duration: CONTINUE_GUARD }), () => {
+      ready = true;
+    });
   }
 
   destroy() {

@@ -2,9 +2,12 @@ import { Sprite, Text, Texture, type PointData } from "pixi.js";
 import { CContainer } from "../../../engine/container";
 import { COLOR_FONT_FILL_LIGHT, COLOR_FONT_STROKE_GRAY } from "../../colors";
 import { getAsset } from "../../assets";
+import { bump, tween } from "../motion";
 import { goalRemaining, isGoalComplete } from "../../model/rules";
 import type { AssetKey } from "../../../assetpack/assets";
 import type { TGoal } from "../../model/types";
+
+const TICK_DURATION = 0.25;
 
 export class CGoalItem extends CContainer<{
   background: Sprite;
@@ -13,11 +16,15 @@ export class CGoalItem extends CContainer<{
   tickMark: Sprite;
 }> {
   readonly type: AssetKey;
+  private drawnRemaining: number;
+  private textScale = 1;
+  private tickScale = 1;
 
   constructor(goal: TGoal) {
     super();
 
     this.type = goal.type;
+    this.drawnRemaining = goalRemaining(goal);
     this.createBackground();
     this.createGoalText(goal);
     this.createTickMark();
@@ -25,8 +32,25 @@ export class CGoalItem extends CContainer<{
   }
 
   render(goal: TGoal) {
-    this.getChildByLabel("goalText").text = goalRemaining(goal);
-    this.getChildByLabel("tickMark").visible = isGoalComplete(goal);
+    const remaining = goalRemaining(goal);
+    const text = this.getChildByLabel("goalText");
+    const tick = this.getChildByLabel("tickMark");
+    const complete = isGoalComplete(goal);
+    text.text = remaining;
+    if (remaining !== this.drawnRemaining) {
+      this.drawnRemaining = remaining;
+      bump(text, this.textScale);
+    }
+    if (complete && !tick.visible) {
+      tween(0, 1, {
+        duration: TICK_DURATION,
+        ease: "backOut",
+        onUpdate: (t) => {
+          if (!tick.destroyed) tick.scale.set(this.tickScale * t);
+        },
+      });
+    }
+    tick.visible = complete;
   }
 
   globalPosition(): PointData {
@@ -57,7 +81,8 @@ export class CGoalItem extends CContainer<{
       },
     });
     text.anchor.set(0.5);
-    text.scale.set(1.4);
+    this.textScale = 1.4;
+    text.scale.set(this.textScale);
     text.position.set(0, -background.height * 0.33);
     this.addNamedChild("goalText", text);
   }
@@ -67,8 +92,8 @@ export class CGoalItem extends CContainer<{
     const texture = getAsset<Texture>("btn-check");
     const sprite = new Sprite({ texture });
     sprite.anchor.set(0.5);
-    const scale = goalText.height / sprite.height;
-    sprite.scale.set(scale * 0.8);
+    this.tickScale = (goalText.height / sprite.height) * 0.8;
+    sprite.scale.set(this.tickScale);
     sprite.position.copyFrom(goalText.position);
     this.addNamedChild("tickMark", sprite);
 

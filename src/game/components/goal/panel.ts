@@ -8,7 +8,14 @@ import config from "../../config";
 import type { AssetKey } from "../../../assetpack/assets";
 import type { TGameState, TGoal } from "../../model/types";
 
-const ITEM_X_OFFSETS = [-0.35, -0.185, 0.185, 0.35];
+// Slots for one to four goals, as fractions of the bar's width either side of
+// the score ring, so a short goal list still sits evenly around it.
+const ITEM_X_OFFSETS: readonly (readonly number[])[] = [
+  [-0.27],
+  [-0.27, 0.27],
+  [-0.35, -0.185, 0.27],
+  [-0.35, -0.185, 0.185, 0.35],
+];
 
 export class CGoalPanel extends CContainer<
   {
@@ -58,7 +65,7 @@ export class CGoalPanel extends CContainer<
       const scale = background.height / item.container.height;
       item.container.scale.set(scale * 0.85);
       item.container.position.set(
-        background.width * ITEM_X_OFFSETS[index],
+        background.width * ITEM_X_OFFSETS[goals.length - 1][index],
         -background.height * 0.05,
       );
       this.addNamedChild(`item_${index}`, item.container);

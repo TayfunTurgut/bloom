@@ -1,4 +1,4 @@
-import { Graphics, Sprite, Texture, type PointData } from "pixi.js";
+import { Graphics, Sprite, Texture } from "pixi.js";
 import { CContainer, type TNone } from "../../engine/container";
 import { getAsset } from "../assets";
 import { CPiece, CPIECE_WIDTH } from "./piece";
@@ -16,21 +16,14 @@ const SLOT_SPACING = CPIECE_WIDTH * TRAY_PIECE_SCALE + 28;
 const SLOT0_X = -204;
 const DIVIDER_X = 130;
 const DIVIDER_HEIGHT = 96;
-const SWAP_BUTTON_X = 196;
-const TRAY_PIECE_ALPHA = 0.8;
-const SWAP_BUTTON_SIZE = 84;
-const BUTTON_DIVIDER_X = 255;
-const BUTTON_DIVIDER_HEIGHT = 84;
-const SETTINGS_BUTTON_X = 308;
+const QUEUED_PIECE_ALPHA = 0.8;
+const SETTINGS_BUTTON_X = 245;
 const SETTINGS_BUTTON_SIZE = 72;
-const SWAP_ARC = 42;
-const SWAP_DURATION = 0.25;
 const SLIDE_DROP = 84;
 const SLIDE_DURATION = 0.15;
 const HIGHLIGHT_RADIUS = (CPIECE_WIDTH * NEXT_PIECE_SCALE) / 2 + 8;
 
 export type TTrayEvents = {
-  "tray:swapClicked": [];
   "tray:settingsClicked": [];
 };
 
@@ -46,15 +39,17 @@ export class CTray extends CContainer<TNone, TTrayEvents> {
     this.nextHighlight = this.createNextHighlight();
     this.createArrows();
     this.createDivider(DIVIDER_X, DIVIDER_HEIGHT);
-    this.createDivider(BUTTON_DIVIDER_X, BUTTON_DIVIDER_HEIGHT);
-    this.createSwapButton();
     this.createSettingsButton();
   }
 
   render(state: TGameState) {
-    // Every running slide and arc aims at a slot that may just have shifted,
+    // Every running slide aims at a slot that may just have shifted,
     // so drop them all and let syncPieceViews snap to the true slots.
     this.animations.stopAll();
+    const before = new Map<number, { x: number; scale: number }>();
+    for (const [id, view] of this.pieces) {
+      before.set(id, { x: view.container.x, scale: view.container.scale.x });
+    }
     const placements: TPiecePlacement[] = state.tray.map((piece, index) => ({
       piece,
       x: slotX(index),
@@ -70,10 +65,11 @@ export class CTray extends CContainer<TNone, TTrayEvents> {
     state.tray.forEach((piece, index) => {
       const view = this.pieces.get(piece.id);
       if (!view) return;
-      view.container.alpha = TRAY_PIECE_ALPHA;
-      view.container.scale.set(
-        index === nextIndex ? NEXT_PIECE_SCALE : TRAY_PIECE_SCALE,
-      );
+      const isNext = index === nextIndex;
+      view.container.alpha = isNext ? 1 : QUEUED_PIECE_ALPHA;
+      view.container.scale.set(isNext ? NEXT_PIECE_SCALE : TRAY_PIECE_SCALE);
+      const from = before.get(piece.id);
+      if (from) this.advance(view, from.x, from.scale);
     });
     for (const view of created) this.slideIn(view);
 
@@ -81,9 +77,29 @@ export class CTray extends CContainer<TNone, TTrayEvents> {
     this.nextHighlight.position.set(slotX(state.tray.length - 1), 0);
   }
 
+  /** Moves a piece that was already in the tray along to its new slot. */
+  private advance(view: CPiece, fromX: number, fromScale: number) {
+    const toX = view.container.x;
+    const toScale = view.container.scale.x;
+    if (fromX === toX && fromScale === toScale) return;
+    view.container.x = fromX;
+    view.container.scale.set(fromScale);
+    const controls = tween(0, 1, {
+      duration: SLIDE_DURATION,
+      ease: "easeOut",
+      onUpdate: (t) => {
+        if (view.container.destroyed) return;
+        view.container.x = fromX + (toX - fromX) * t;
+        view.container.scale.set(fromScale + (toScale - fromScale) * t);
+      },
+    });
+    this.animations.track(controls);
+  }
+
   private slideIn(view: CPiece) {
     const targetX = view.container.x;
     const targetY = view.container.y;
+    const targetAlpha = view.container.alpha;
     view.container.alpha = 0;
     const controls = tween(0, 1, {
       duration: SLIDE_DURATION,
@@ -91,7 +107,7 @@ export class CTray extends CContainer<TNone, TTrayEvents> {
       onUpdate: (t) => {
         if (view.container.destroyed) return;
         view.container.position.set(targetX, targetY - SLIDE_DROP * (1 - t));
-        view.container.alpha = TRAY_PIECE_ALPHA * t;
+        view.container.alpha = targetAlpha * t;
       },
     });
     this.animations.track(controls);
@@ -103,42 +119,11 @@ export class CTray extends CContainer<TNone, TTrayEvents> {
     return total;
   }
 
-  /** Where to ring the swap button, in global space. */
-  swapButtonHighlight(): { at: PointData; radius: number } {
-    return {
-      at: this.container.toGlobal({ x: SWAP_BUTTON_X, y: 0 }),
-      radius: SWAP_BUTTON_SIZE * 0.72,
-    };
-  }
-
-  playSwap(aId: number, bId: number) {
-    const a = this.pieces.get(aId);
-    const b = this.pieces.get(bId);
-    if (!a || !b) return;
-    this.arc(a, b.container.x, a.container.x, SWAP_ARC);
-    this.arc(b, a.container.x, b.container.x, -SWAP_ARC);
-  }
-
   destroy() {
     this.animations.stopAll();
     for (const view of this.pieces.values()) view.destroy();
     this.pieces.clear();
     this.container.destroy({ children: true });
-  }
-
-  private arc(view: CPiece, fromX: number, toX: number, lift: number) {
-    const controls = tween(0, 1, {
-      duration: SWAP_DURATION,
-      ease: "easeInOut",
-      onUpdate: (t) => {
-        if (view.container.destroyed) return;
-        view.container.position.set(
-          fromX + (toX - fromX) * t,
-          Math.sin(Math.PI * t) * lift,
-        );
-      },
-    });
-    this.animations.track(controls);
   }
 
   private createBackground() {
@@ -174,26 +159,6 @@ export class CTray extends CContainer<TNone, TTrayEvents> {
     divider.scale.set(height / divider.height);
     divider.position.set(x, 0);
     this.container.addChild(divider);
-  }
-
-  private createSwapButton() {
-    const button = new Sprite(getAsset<Texture>("btn-refresh"));
-    button.anchor.set(0.5);
-    const scale = SWAP_BUTTON_SIZE / Math.max(button.width, button.height);
-    button.scale.set(scale);
-    button.position.set(SWAP_BUTTON_X, 0);
-    button.eventMode = "static";
-    button.cursor = "pointer";
-    const restore = () => {
-      button.texture = getAsset<Texture>("btn-refresh");
-    };
-    button.on("pointerdown", () => {
-      button.texture = getAsset<Texture>("btn-refresh-pressed");
-    });
-    button.on("pointerup", restore);
-    button.on("pointerupoutside", restore);
-    button.on("pointertap", () => this.emit("tray:swapClicked"));
-    this.container.addChild(button);
   }
 
   private createSettingsButton() {

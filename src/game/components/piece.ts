@@ -16,6 +16,15 @@ const SUPPLY_TINT = 0x777777;
 const GOAL_PULSE_PERIOD_MS = 1200;
 const GOAL_PULSE_AMPLITUDE = 0.025;
 
+const LAND_FROM = 0.6;
+const LAND_DURATION = 0.18;
+const REFUSE_SWAY = 6;
+const REFUSE_DURATION = 0.2;
+
+// Small boards draw a piece at more than twice its design size, so the value
+// is rasterised above screen density to stay sharp when scaled up.
+const VALUE_RESOLUTION = Math.min(6, (window.devicePixelRatio || 1) * 2);
+
 export class CPiece extends CContainer<{
   sprite: Sprite;
   growth: Sprite;
@@ -26,6 +35,7 @@ export class CPiece extends CContainer<{
   private drawnValue: number;
   private drawnType: TCropState;
   private goalPulse = false;
+  private readonly cropScale: number;
   private readonly animations = new CAnimations();
 
   constructor(piece: TPiece) {
@@ -45,6 +55,7 @@ export class CPiece extends CContainer<{
     sprite.scale.set(scale);
     sprite.position.set(0, CROP_BASELINE_Y);
     this.addNamedChild("sprite", sprite);
+    this.cropScale = scale;
 
     const growth = new Sprite(
       getAsset<Texture>(growthTextureFor(piece.currentValue)),
@@ -73,6 +84,7 @@ export class CPiece extends CContainer<{
         fontFamily: getAsset<FontFace>("Baloo2-Bold").family,
         fontWeight: "bold",
       },
+      resolution: VALUE_RESOLUTION,
     });
     text.anchor.set(0.5);
     text.position.set(-CPIECE_WIDTH * 0.5 + 8, -CPIECE_HEIGHT * 0.5 + 8);
@@ -123,6 +135,36 @@ export class CPiece extends CContainer<{
     if (sprouted || (valueChanged && piece.type === "GROWING")) {
       this.popValue();
     }
+  }
+
+  // Both moves animate the crop sprite, not the container: its anchor sits on
+  // the soil, and the container's scale belongs to the goal pulse and the tray.
+
+  /** The crop grows out of the soil as it is placed. */
+  playLand() {
+    const sprite = this.getChildByLabel("sprite");
+    const controls = tween(LAND_FROM, 1, {
+      duration: LAND_DURATION,
+      ease: "backOut",
+      onUpdate: (value) => {
+        if (!sprite.destroyed) sprite.scale.set(this.cropScale * value);
+      },
+    });
+    this.animations.track(controls);
+  }
+
+  /** The crop shakes its head: this cell is taken. */
+  playRefuse() {
+    const sprite = this.getChildByLabel("sprite");
+    const controls = tween(0, 1, {
+      duration: REFUSE_DURATION,
+      ease: "linear",
+      onUpdate: (t) => {
+        if (sprite.destroyed) return;
+        sprite.x = Math.sin(t * Math.PI * 4) * REFUSE_SWAY * (1 - t);
+      },
+    });
+    this.animations.track(controls);
   }
 
   destroy() {

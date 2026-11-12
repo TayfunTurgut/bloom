@@ -6,11 +6,10 @@ import {
   isLevelWon,
   placeFromTray,
   scoreMax,
-  swapTray,
   TRAY_SIZE,
 } from "./rules";
 import { fromSnapshot, toSnapshot } from "./serialize";
-import { nextFloat, nextInt } from "./rng";
+import { nextInt } from "./rng";
 import { levelFor } from "../config/generate";
 import { DEFAULT_SKIN_ID, skinById } from "../config/skins";
 import { cellIdFromXY } from "../id";
@@ -22,7 +21,6 @@ import type { TEffect, TGameState, TMoveReport } from "./types";
 const LEVEL_INDICES = [0, 3, 9, 10, 75, 200, 500, 999];
 const SEEDS_PER_LEVEL = 10;
 const MOVE_CAP = 250;
-const SWAP_CHANCE = 0.15;
 
 const skin = skinById(DEFAULT_SKIN_ID);
 
@@ -52,10 +50,6 @@ const playThrough = (
   const sim: TSim = { state, reports: [] };
 
   for (let move = 0; move < MOVE_CAP; move++) {
-    if (nextFloat(policy) < SWAP_CHANCE) {
-      const report = swapTray(state);
-      if (report) sim.reports.push(report);
-    }
     const cells = legalCells(state);
     if (cells.length === 0) break;
     const pick = cells[nextInt(policy, 0, cells.length - 1)];

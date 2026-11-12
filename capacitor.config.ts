@@ -6,12 +6,12 @@ const config: CapacitorConfig = {
   webDir: "dist",
   ios: {
     contentInset: "never",
-    backgroundColor: "#000000",
+    backgroundColor: "#d0eb9d",
   },
   plugins: {
     SplashScreen: {
       launchAutoHide: false,
-      backgroundColor: "#000000",
+      backgroundColor: "#d0eb9d",
     },
   },
 };

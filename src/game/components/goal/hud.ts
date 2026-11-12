@@ -2,6 +2,7 @@ import { CircularProgressBar } from "@pixi/ui";
 import { Sprite, Text, type PointData, type Texture } from "pixi.js";
 import { CContainer } from "../../../engine/container";
 import { getAsset } from "../../assets";
+import { bump, tween, type TAnimation } from "../motion";
 import {
   COLOR_FONT_FILL_LIGHT,
   COLOR_FONT_STROKE_GRAY,
@@ -14,6 +15,7 @@ import type { TGameState } from "../../model/types";
 const RING_RADIUS = 96;
 const RING_WIDTH = 14;
 const PIP_SCALE = 1.4;
+const RING_FILL_DURATION = 0.3;
 
 export class CGoalHud extends CContainer<{
   background: Sprite;
@@ -21,6 +23,9 @@ export class CGoalHud extends CContainer<{
 }> {
   private ring!: CircularProgressBar;
   private readonly pips: Sprite[] = [];
+  private readonly pipFilled: boolean[] = [];
+  private ringTarget = 0;
+  private ringFill: TAnimation | null = null;
 
   constructor(state: TGameState) {
     super();
@@ -34,13 +39,29 @@ export class CGoalHud extends CContainer<{
   render(state: TGameState) {
     this.getChildByLabel("moveCounter").text = state.moves;
     const max = scoreMax(state);
-    this.ring.progress = max > 0 ? (state.score / max) * 100 : 0;
+    this.fillRingTo(max > 0 ? (state.score / max) * 100 : 0);
     milestoneThresholds(state).forEach((threshold, index) => {
       const pip = this.pips[index];
       if (!pip) return;
+      const filled = state.score >= threshold;
       pip.texture = getAsset<Texture>(
-        state.score >= threshold ? "leaf-icon-full" : "leaf-icon-empty",
+        filled ? "leaf-icon-full" : "leaf-icon-empty",
       );
+      if (filled && !this.pipFilled[index]) bump(pip, PIP_SCALE);
+      this.pipFilled[index] = filled;
+    });
+  }
+
+  private fillRingTo(target: number) {
+    if (target === this.ringTarget) return;
+    this.ringTarget = target;
+    this.ringFill?.stop();
+    this.ringFill = tween(this.ring.progress, target, {
+      duration: RING_FILL_DURATION,
+      ease: "easeOut",
+      onUpdate: (value) => {
+        if (!this.ring.destroyed) this.ring.progress = value;
+      },
     });
   }
 
@@ -104,6 +125,7 @@ export class CGoalHud extends CContainer<{
         Math.sin(angle) * RING_RADIUS,
       );
       this.pips.push(pip);
+      this.pipFilled.push(state.score >= threshold);
       this.container.addChild(pip);
     }
   }

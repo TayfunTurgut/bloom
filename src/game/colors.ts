@@ -1,4 +1,6 @@
-export const COLOR_BACKGROUND = "#121212";
+// The grass green of the launch screen, the page and the canvas behind the
+// tiled background, so nothing flashes a different colour while loading.
+export const COLOR_BACKGROUND = "#d0eb9d";
 export const COLOR_FONT_FILL_GREEN = "#d8f3cc";
 export const COLOR_FONT_STROKE_GREEN = "#9b7258";
 export const COLOR_FONT_FILL_LIGHT = "#ffffff";

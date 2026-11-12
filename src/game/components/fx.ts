@@ -23,7 +23,9 @@ const RAIN_PARTICLES = 24;
 const RAIN_SIZE = CCELL_WIDTH * 0.42;
 const RAIN_DURATION = 1.5;
 const GOAL_PARTICLES = 10;
-const GOAL_FLIGHT_DURATION = 0.55;
+// Flight plus its jitter ends within VANISH_DURATION, when the goal redraws.
+const GOAL_FLIGHT_DURATION = 0.4;
+const GOAL_FLIGHT_JITTER = 0.05;
 
 const VANISH_KEYS: readonly AssetKey[] = [
   "vanish0",
@@ -152,7 +154,7 @@ export class CEffects {
 
       const controls = tween(0, 1, {
         duration: GOAL_FLIGHT_DURATION,
-        delay: delay + Math.random() * 0.1,
+        delay: delay + Math.random() * GOAL_FLIGHT_JITTER,
         ease: "easeIn",
         onUpdate: (t) => {
           const spread = Math.min(1, t * 4);

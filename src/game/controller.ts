@@ -1,7 +1,10 @@
 import { Container } from "pixi.js";
 import { CircularProgressBar } from "@pixi/ui";
 import config from "./config";
-import { COLOR_BACKGROUND, COLOR_GOAL_PROGRESS_FILL } from "./colors";
+import {
+  COLOR_GOAL_PROGRESS_BACKGROUND,
+  COLOR_GOAL_PROGRESS_FILL,
+} from "./colors";
 import { onResize } from "../engine/resize";
 import { CContainer } from "../engine/container";
 import { fitDesignBox, ZERO_INSETS, type TInsets } from "../engine/fit";
@@ -22,6 +25,7 @@ import { CCELL_HEIGHT, CCELL_WIDTH } from "./components/cell";
 import { fromSnapshot, toSnapshot } from "./model/serialize";
 import { CGameStore } from "./model/store";
 import {
+  canPlace,
   createInitialState,
   isLevelFailed,
   isLevelWon,
@@ -51,6 +55,7 @@ import {
   SFX_ASSET_KEYS,
 } from "./sound";
 import type { AssetKey } from "../assetpack/assets";
+import { getAsset } from "./assets";
 
 const STATIC_ASSET_KEYS: readonly AssetKey[] = [
   "game-grid-bg",
@@ -64,6 +69,9 @@ const STATIC_ASSET_KEYS: readonly AssetKey[] = [
 ];
 
 const LEVEL_END_BEAT = 0.3;
+const REFUSE_SOUND = { speed: 0.7, volume: 0.4 };
+// Each harvest in a chain plays a little higher than the one before it.
+const CHAIN_PITCH_STEP = 0.08;
 
 export class CGameController extends CContainer {
   private store!: CGameStore;
@@ -96,7 +104,7 @@ export class CGameController extends CContainer {
     bindAnimationsTo(app.ticker);
 
     const progressBar = new CircularProgressBar({
-      backgroundColor: COLOR_BACKGROUND,
+      backgroundColor: COLOR_GOAL_PROGRESS_BACKGROUND,
       backgroundAlpha: 1,
       fillColor: COLOR_GOAL_PROGRESS_FILL,
       fillAlpha: 1,
@@ -122,6 +130,10 @@ export class CGameController extends CContainer {
       },
     );
     progressBar.destroy();
+
+    // Both Baloo files load as one family at normal weight. Marking the bold
+    // file as the family's bold face lets text pick it, not a faked bold.
+    getAsset<FontFace>("Baloo2-Bold").weight = "bold";
 
     initSound(() => ({
       musicOn: this.profile.musicOn,
@@ -175,17 +187,19 @@ export class CGameController extends CContainer {
 
     this.board = new CBoard(state);
     this.board.on("board:cellClicked", ({ x, y }) => {
-      if (!this.tutorialAllows({ kind: "place", cell: cellIdFromXY(x, y) }))
+      const cell = cellIdFromXY(x, y);
+      if (!this.tutorialAllows({ kind: "place", cell })) return;
+      if (!canPlace(this.store.state, x, y)) {
+        const taken = this.store.state.board.get(cell)?.piece;
+        if (taken) this.board.refusePlacement(taken.id);
+        sfx("pop", REFUSE_SOUND);
         return;
+      }
       this.store.place(x, y);
     });
     this.levelContainer.addChild(this.board.container);
 
     this.tray = new CTray();
-    this.tray.on("tray:swapClicked", () => {
-      if (!this.tutorialAllows({ kind: "swap" })) return;
-      this.store.swapTray();
-    });
     this.tray.on("tray:settingsClicked", () => this.openSettings());
     this.levelContainer.addChild(this.tray.container);
 
@@ -206,12 +220,6 @@ export class CGameController extends CContainer {
         return;
       }
       this.render(next);
-      for (const effect of report.effects) {
-        if (effect.type === "TRAY_SWAPPED") {
-          sfx("swap");
-          this.tray.playSwap(effect.a, effect.b);
-        }
-      }
       this.updateCoach(next);
     });
     this.render(state);
@@ -249,7 +257,6 @@ export class CGameController extends CContainer {
           state: () => this.store.state,
           lastReport: () => this.lastReport,
           place: (x: number, y: number) => this.store.place(x, y),
-          swap: () => this.store.swapTray(),
           goToLevel: (index: number) => this.goToLevel(index),
           setSkin: (id: string) => this.setSkin(id),
           idle: () => this.idle(),
@@ -396,7 +403,7 @@ export class CGameController extends CContainer {
         const delay = index * EFFECT_STAGGER;
         waits.push(
           this.effects.vanish(at, delay, () => {
-            sfx("match");
+            sfx("match", { speed: 1 + index * CHAIN_PITCH_STEP });
             this.board.removePiece(effect.pieceId);
           }),
         );
@@ -473,10 +480,7 @@ export class CGameController extends CContainer {
       }
       return;
     }
-    const target =
-      step.action.kind === "place"
-        ? this.board.cellHighlight(step.action.cell)
-        : this.tray.swapButtonHighlight();
+    const target = this.board.cellHighlight(step.action.cell);
     if (target) {
       this.coach.setTarget(
         this.levelContainer.toLocal(target.at),

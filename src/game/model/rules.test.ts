@@ -6,7 +6,6 @@ import {
   milestoneThresholds,
   placeFromTray,
   scoreMax,
-  swapTray,
   TRAY_SIZE,
   type TLevel,
 } from "./rules";
@@ -675,32 +674,5 @@ describe("rocked pieces", () => {
     expect(at(state, 1, 1)).toBeNull();
     expect(goal.progress).toBe(2);
     expect(pop?.effects.some((effect) => effect.type === "SCORED")).toBe(true);
-  });
-});
-
-describe("swapTray", () => {
-  it("swaps the two rightmost pieces for free", () => {
-    const state = createInitialState(0, level, SEED);
-    const before = [...state.tray];
-    const rngBefore = state.rng;
-
-    const report = swapTray(state);
-
-    expect(state.tray).toEqual([before[0], before[2], before[1]]);
-    expect(state.moves).toBe(0);
-    expect(state.rng).toBe(rngBefore);
-    expect(report?.effects).toEqual([
-      { type: "TRAY_SWAPPED", a: before[2].id, b: before[1].id },
-    ]);
-  });
-
-  it("restores the order when swapped twice", () => {
-    const state = createInitialState(0, level, SEED);
-    const before = [...state.tray];
-
-    swapTray(state);
-    swapTray(state);
-
-    expect(state.tray).toEqual(before);
   });
 });

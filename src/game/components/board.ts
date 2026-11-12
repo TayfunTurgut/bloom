@@ -89,6 +89,7 @@ export class CBoard extends CContainer<TNone, TBoardEvents> {
     const at = this.positionOfCell(cellId);
     if (!piece || !at) return;
     let view = this.pieces.get(piece.id);
+    const placed = !view;
     if (!view) {
       view = new CPiece(piece);
       this.pieces.set(piece.id, view);
@@ -96,6 +97,7 @@ export class CBoard extends CContainer<TNone, TBoardEvents> {
     this.pieceContainer.addChild(view.container);
     view.container.position.set(at.x, at.y);
     view.sync(piece);
+    if (placed) view.playLand();
   }
 
   // Shows a placed supply that the model consumed within the same move, so
@@ -107,6 +109,11 @@ export class CBoard extends CContainer<TNone, TBoardEvents> {
     this.pieces.set(piece.id, view);
     this.pieceContainer.addChild(view.container);
     view.container.position.set(at.x, at.y);
+    view.playLand();
+  }
+
+  refusePlacement(pieceId: number) {
+    this.pieces.get(pieceId)?.playRefuse();
   }
 
   showFedValue(pieceId: number, value: number) {

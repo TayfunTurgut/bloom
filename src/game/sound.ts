@@ -9,7 +9,6 @@ import { getAsset } from "./assets";
 export const SFX_ASSET_KEYS = [
   "pop",
   "match",
-  "swap",
   "win",
   "fail",
 ] as const satisfies readonly AssetKey[];
@@ -28,9 +27,12 @@ export const initSound = (getPrefs: () => TSoundPrefs) => {
   prefs = getPrefs;
 };
 
-export const sfx = (name: TSfxName) => {
+export const sfx = (
+  name: TSfxName,
+  options?: { speed?: number; volume?: number },
+) => {
   if (!prefs().sfxOn) return;
-  void getAsset<Sound>(name).play();
+  void getAsset<Sound>(name).play(options);
 };
 
 export const music = {

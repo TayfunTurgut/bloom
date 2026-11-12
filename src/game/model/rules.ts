@@ -133,19 +133,6 @@ export const placeFromTray = (
   return { moves: state.moves, effects };
 };
 
-export const swapTray = (state: TGameState): TMoveReport | null => {
-  if (state.tray.length < 2) return null;
-  const last = state.tray.length - 1;
-  const a = state.tray[last];
-  const b = state.tray[last - 1];
-  state.tray[last] = b;
-  state.tray[last - 1] = a;
-  return {
-    moves: state.moves,
-    effects: [{ type: "TRAY_SWAPPED", a: a.id, b: b.id }],
-  };
-};
-
 export const refillTray = (state: TGameState) => {
   while (state.tray.length < TRAY_SIZE) {
     state.tray.unshift(drawPiece(state));

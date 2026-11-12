@@ -6,8 +6,7 @@ import {
 import type { CellId } from "../id";
 import type { TGameState } from "./types";
 
-export type TTutorialAction =
-  { kind: "place"; cell: CellId } | { kind: "swap" };
+export type TTutorialAction = { kind: "place"; cell: CellId };
 
 export type TTutorialView = {
   step: 1 | 2 | 3;
@@ -28,12 +27,8 @@ const place = (cell: CellId): TTutorialAction => ({ kind: "place", cell });
 const rightmostId = (state: TGameState): number | undefined =>
   state.tray[state.tray.length - 1]?.id;
 
-const inTray = (state: TGameState, id: number): boolean =>
-  state.tray.some((piece) => piece.id === id);
-
 // Derives the current step from observable state alone (move count and the
-// rightmost tray piece), so a restored save resumes mid-tutorial and an extra
-// swap self-heals into another swap prompt.
+// rightmost tray piece), so a restored save resumes mid-tutorial.
 export const tutorialView = (state: TGameState): TTutorialView | null => {
   if (state.level !== TUTORIAL_LEVEL_INDEX) return null;
   if (state.moves >= TUTORIAL_MOVES) return null;
@@ -48,31 +43,19 @@ export const tutorialView = (state: TGameState): TTutorialView | null => {
   }
 
   if (state.moves === 1) {
-    if (!inTray(state, TUTORIAL_PIECE_IDS.feeder)) return null;
-    if (rightmostId(state) === TUTORIAL_PIECE_IDS.feeder)
-      return view(
-        2,
-        place(TUTORIAL_STEP_CELLS.feed),
-        "Plant next to your crop to feed it.",
-      );
+    if (rightmostId(state) !== TUTORIAL_PIECE_IDS.feeder) return null;
     return view(
       2,
-      { kind: "swap" },
-      "That one's too small — tap the swap button.",
+      place(TUTORIAL_STEP_CELLS.feed),
+      "Plant next to your crop to feed it.",
     );
   }
 
-  if (!inTray(state, TUTORIAL_PIECE_IDS.popper)) return null;
-  if (rightmostId(state) === TUTORIAL_PIECE_IDS.popper)
-    return view(
-      3,
-      place(TUTORIAL_STEP_CELLS.pop),
-      "Feed it down to zero to harvest it!",
-    );
+  if (rightmostId(state) !== TUTORIAL_PIECE_IDS.popper) return null;
   return view(
     3,
-    { kind: "swap" },
-    "Tap the swap button to bring it back in front.",
+    place(TUTORIAL_STEP_CELLS.pop),
+    "Feed it down to zero to harvest it!",
   );
 };
 
@@ -84,6 +67,5 @@ export const actionAllowed = (
   action: TTutorialAction,
 ): boolean => {
   if (!current) return true;
-  if (current.action.kind === "swap") return action.kind === "swap";
-  return action.kind === "place" && action.cell === current.action.cell;
+  return action.cell === current.action.cell;
 };

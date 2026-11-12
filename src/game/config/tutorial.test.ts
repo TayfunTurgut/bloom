@@ -20,14 +20,14 @@ describe("tutorialLevel", () => {
     }
   });
 
-  it("scripts three pieces of the goal crop with the 6-2-4 deal", () => {
+  it("scripts three pieces of the goal crop with the 6-4-2 deal", () => {
     const level = tutorialLevel(SKINS[0]);
 
     expect(level.goals).toEqual([{ type: SKINS[0].crops[0], count: 2 }]);
     expect(level.script?.map((entry) => entry.piece)).toEqual(
       Array.from({ length: 3 }, () => SKINS[0].crops[0]),
     );
-    expect(level.script?.map((entry) => entry.value)).toEqual([6, 2, 4]);
+    expect(level.script?.map((entry) => entry.value)).toEqual([6, 4, 2]);
   });
 
   it("keeps its step cells on the board", () => {

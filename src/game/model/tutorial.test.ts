@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createInitialState, placeFromTray, swapTray } from "./rules";
+import { createInitialState, placeFromTray } from "./rules";
 import { fromSnapshot, toSnapshot } from "./serialize";
 import {
   actionAllowed,
@@ -33,8 +33,8 @@ describe("tutorialView", () => {
     const state = start();
 
     expect(state.tray.map((piece) => piece.id)).toEqual([
-      TUTORIAL_PIECE_IDS.feeder,
       TUTORIAL_PIECE_IDS.popper,
+      TUTORIAL_PIECE_IDS.feeder,
       TUTORIAL_PIECE_IDS.plant,
     ]);
   });
@@ -50,24 +50,16 @@ describe("tutorialView", () => {
     expect(view?.hint).toBeTruthy();
   });
 
-  it("asks for a swap once the decoy sits in front", () => {
+  it("asks for the feed cell once the crop is planted", () => {
     const state = start();
-    const report = place(state, TUTORIAL_STEP_CELLS.plant);
+    const planted = place(state, TUTORIAL_STEP_CELLS.plant);
 
     expect(
-      report?.effects.some(
+      planted?.effects.some(
         (effect) => effect.type === "SPROUTED" && effect.value === 6,
       ),
     ).toBe(true);
     expect(tutorialView(state)?.step).toBe(2);
-    expect(tutorialView(state)?.action).toEqual({ kind: "swap" });
-  });
-
-  it("asks for the feed cell after the swap", () => {
-    const state = start();
-    place(state, TUTORIAL_STEP_CELLS.plant);
-    swapTray(state);
-
     expect(tutorialView(state)?.action).toEqual({
       kind: "place",
       cell: TUTORIAL_STEP_CELLS.feed,
@@ -79,19 +71,9 @@ describe("tutorialView", () => {
     );
   });
 
-  it("keeps asking for a swap if the player swaps back", () => {
-    const state = start();
-    place(state, TUTORIAL_STEP_CELLS.plant);
-    swapTray(state);
-    swapTray(state);
-
-    expect(tutorialView(state)?.action).toEqual({ kind: "swap" });
-  });
-
   it("walks the pop into the goal panel and then steps aside", () => {
     const state = start();
     place(state, TUTORIAL_STEP_CELLS.plant);
-    swapTray(state);
     place(state, TUTORIAL_STEP_CELLS.feed);
 
     expect(tutorialView(state)?.step).toBe(3);
@@ -115,7 +97,6 @@ describe("tutorialView", () => {
   it("survives a save and restore mid-tutorial", () => {
     const state = start();
     place(state, TUTORIAL_STEP_CELLS.plant);
-    swapTray(state);
 
     const restored = fromSnapshot(
       toSnapshot(state, SKIN.id),
@@ -128,6 +109,31 @@ describe("tutorialView", () => {
       kind: "place",
       cell: TUTORIAL_STEP_CELLS.feed,
     });
+  });
+
+  it("still finishes a save made under the old 6-2-4 deal", () => {
+    const old = tutorialLevel(SKIN);
+    const [six, four, two] = old.script!;
+    const state = createInitialState(
+      TUTORIAL_LEVEL_INDEX,
+      { ...old, script: [six, two, four] },
+      SEED,
+    );
+    place(state, TUTORIAL_STEP_CELLS.plant);
+
+    expect(tutorialView(state)?.action).toEqual({
+      kind: "place",
+      cell: TUTORIAL_STEP_CELLS.feed,
+    });
+    place(state, TUTORIAL_STEP_CELLS.feed);
+    expect(tutorialView(state)?.action).toEqual({
+      kind: "place",
+      cell: TUTORIAL_STEP_CELLS.pop,
+    });
+    const report = place(state, TUTORIAL_STEP_CELLS.pop);
+
+    expect(report?.effects.map((effect) => effect.type)).toContain("HARVESTED");
+    expect(isTutorialComplete(state)).toBe(true);
   });
 
   it("stays out of every other level", () => {
@@ -153,11 +159,9 @@ describe("actionAllowed", () => {
 
     expect(actionAllowed(view, placePlant)).toBe(true);
     expect(actionAllowed(view, placeFeed)).toBe(false);
-    expect(actionAllowed(view, { kind: "swap" })).toBe(false);
   });
 
   it("allows everything once the tutorial stands down", () => {
     expect(actionAllowed(null, placeFeed)).toBe(true);
-    expect(actionAllowed(null, { kind: "swap" })).toBe(true);
   });
 });

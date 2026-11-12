@@ -2,10 +2,14 @@ import { Rectangle, Sprite, Texture } from "pixi.js";
 import { cellIdFromXY } from "../id";
 import { getAsset } from "../assets";
 import { CContainer } from "../../engine/container";
+import { tween } from "./motion";
 
 export const CCELL_WIDTH = 100;
 export const CCELL_HEIGHT = 100;
 export const CCELL_GAP = 8;
+
+const PRESS_SCALE = 0.94;
+const RELEASE_DURATION = 0.1;
 
 type ICellOptions = {
   x: number;
@@ -34,6 +38,29 @@ export class CCell extends CContainer {
     this.container.addChild(sprite);
 
     this.setupInteractivity();
+    this.setupPressFeedback(sprite);
+  }
+
+  // The soil dips under the finger and springs back on release, so a tap is
+  // felt before the move it causes is drawn.
+  private setupPressFeedback(sprite: Sprite) {
+    const rest = sprite.scale.x;
+    const release = () => {
+      const from = sprite.scale.x / rest;
+      if (from === 1) return;
+      tween(from, 1, {
+        duration: RELEASE_DURATION,
+        ease: "easeOut",
+        onUpdate: (value) => {
+          if (!sprite.destroyed) sprite.scale.set(rest * value);
+        },
+      });
+    };
+    this.container.on("pointerdown", () =>
+      sprite.scale.set(rest * PRESS_SCALE),
+    );
+    this.container.on("pointerup", release);
+    this.container.on("pointerupoutside", release);
   }
 
   private setupInteractivity() {

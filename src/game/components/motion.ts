@@ -1,5 +1,5 @@
 import { animate } from "motion";
-import type { Ticker } from "pixi.js";
+import type { Container, Ticker } from "pixi.js";
 
 export type TAnimation = ReturnType<typeof animate>;
 
@@ -41,6 +41,22 @@ export const tween = (
   to: number,
   options: TTweenOptions,
 ): TAnimation => animate(from, to, { ...options, driver });
+
+/** Swells a target and settles it back at its resting scale. */
+export const bump = (
+  target: Container,
+  rest: number,
+  amount = 0.35,
+  duration = 0.3,
+): TAnimation =>
+  tween(0, 1, {
+    duration,
+    ease: "easeOut",
+    onUpdate: (t) => {
+      if (target.destroyed) return;
+      target.scale.set(rest * (1 + Math.sin(Math.PI * t) * amount));
+    },
+  });
 
 export class CAnimations {
   private readonly running = new Set<TAnimation>();
