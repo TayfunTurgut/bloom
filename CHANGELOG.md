@@ -4,7 +4,7 @@ All notable changes to Sprout are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/), and the project uses
 [semantic versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.2.0] — 2026-11-12
 
 ### Changed
 
